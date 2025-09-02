@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectMongodb from "./config/mongodb.config.js";
+import errorHandler from "./middlewares/errorHandler.js";
 // import { swaggerSpec, swaggerUi } from "./swagger/config.js";
 // import router from "./router/index.js";
 
@@ -31,6 +32,8 @@ app.use('/api', router);
 app.get("/", (req, res) => {
   res.send("Hello World");
 });
+
+app.use(errorHandler);
 
 // 서버 실행
 app.listen(PORT,HOST, () => {
