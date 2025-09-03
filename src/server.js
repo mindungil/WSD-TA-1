@@ -16,6 +16,7 @@ const HOST = process.env.HOST;
 // db 연결
 connectMongodb();
 
+// 미들웨어
 app.use(cors());
 app.use(helmet());
 app.use(express.json({limit: '10mb'}));
@@ -26,13 +27,13 @@ app.use(express.urlencoded({extended: true}));
 //     swaggerUi.serve, swaggerUi.setup(swaggerSpec)
 // );
 
-// 라우트
 app.use('/api', router);
 
 app.get("/", (req, res) => {
   res.send("Hello World");
 });
 
+// 글로벌 에러 핸들러
 app.use(errorHandler);
 
 // 서버 실행
