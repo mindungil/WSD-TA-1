@@ -11,7 +11,7 @@ const wishlistSchema = new Schema(
   { timestamps: true }
 );
 
-// 유저 × ISBN 중복 방지
-wishlistSchema.index({ userId: 1, isbn: 1 }, { unique: true });
+// 유저 × 책 중복 방지
+wishlistSchema.index({ userId: 1, bookId: 1 }, { unique: true });
 
 export default model("Wishlist", wishlistSchema);

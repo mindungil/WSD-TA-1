@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from 'dotenv';
 import Review from "../models/review.model.js";
-import { generateAccessToken, generateRefreshToken, saveRefreshToken, deleteRefreshToken } from "./tokenService.js";
+import { generateAccessToken, generateRefreshToken, saveRefreshToken, deleteRefreshToken } from "./auth.controller.js";
 
 dotenv.config();
 
@@ -80,7 +80,10 @@ export async function updateProfile(req, res, next) {
     const { nickname, password } = req.body;
 
     if (nickname) user.nickname = nickname;
-    if (password) user.password = password;
+    if (password) {
+      const hashSalt = parseInt(process.env.BCRYPT_SALT_ROUNDS);
+      user.password = await bcrypt.hash(password, hashSalt);
+    }
 
     await user.save();
     res.json({ success: true, data: { id: user._id, nickname: user.nickname, email: user.email } });
@@ -93,7 +96,7 @@ export async function updateProfile(req, res, next) {
 export async function deleteAccount(req, res, next) {
   try {
     const user = req.user;
-    await user.remove();
+    await user.deleteOne();
     res.json({ success: true, message: "회원 탈퇴 완료" });
   } catch (err) {
     next(err);

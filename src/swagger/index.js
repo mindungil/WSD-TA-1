@@ -23,7 +23,7 @@ const reviewLikeSpec = YAML.load(path.join(__dirname, 'specs/reviewLike.yaml'));
 // paths와 components 병합
 swaggerDocument.paths = {
   ...swaggerDocument.paths,
-  ...libraryDocument.paths,
+  ...librarySpec.paths,
   ...bookSpec.paths,
   ...reviewSpec.paths,
   ...commentSpec.paths,

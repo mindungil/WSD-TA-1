@@ -113,7 +113,7 @@ export async function getBookList(req, res, next) {
 export async function getBookToIsbn(req, res, next) {
   try {
     const isbn = req.params.isbn;
-    const book = await Book.findOne({isbn});
+    const book = await Book.findOne({isbn: isbn});
 
     if(!book) throw new CustomError("해당 도서가 존재하지 않습니다.", 404);
     

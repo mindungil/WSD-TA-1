@@ -6,7 +6,7 @@ import { getPagination } from "../utils/paginate.js";
 // 라이브러리에 도서 등록
 export async function addBookToLibrary(req, res, next) {
   try {
-    const { bookId, isbn } = req.body;
+    const { bookId } = req.body;
     if (!bookId) throw new CustomError("bookId가 필요합니다. ", 404);
 
     let book = await Book.findById({ _id: bookId });
@@ -18,7 +18,7 @@ export async function addBookToLibrary(req, res, next) {
       throw new CustomError("책 정보가 존재하지 않습니다.", 403);
     }
 
-    const lib = await Library.create({ userId: req.user._id, bookId: book._id, isbn: isbn });
+    const lib = await Library.create({ userId: req.user._id, bookId: book._id, isbn: book.isbn });
     return res.status(201).json({ success: true, data: lib });
   } catch (err) {
     next(err);
@@ -47,8 +47,11 @@ export async function getLibraryOne(req, res, next) {
   try {
     const title = req.query.title;
     const id = req.user._id;
-    const bookId = await Book.findOne({title: title});
-    const item = await Library.findOne({ userId: id, bookId});
+    const book = await Book.findOne({title: title});
+    if (!book) {
+      return res.json({ success: true, data: null });
+    }
+    const item = await Library.findOne({ userId: id, bookId: book._id});
     // 반환값 없어도 오류 아님
     // if (!item) throw new CustomError("해당 도서를 찾을 수 없습니다.", 404);
     res.json({ success: true, data: item });
@@ -65,7 +68,7 @@ export async function deleteLibraryItem(req, res, next) {
     if (!library) throw new CustomError("해당 등록을 찾을 수 없습니다.", 404);
     if (!library.userId.equals(req.user._id)) throw new CustomError("권한이 없습니다.", 403);
 
-    await library.deleteOne({_id: id});
+    await library.deleteOne();
     res.json({ success: true, message: "삭제되었습니다." });
   } catch (err) {
     next(err);

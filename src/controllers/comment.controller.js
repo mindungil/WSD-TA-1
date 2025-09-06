@@ -59,9 +59,9 @@ export async function deleteComment(req, res, next) {
     const { commentId } = req.params;
     const comment = await Comment.findById(commentId);
     if (!comment) throw new CustomError("댓글을 찾을 수 없습니다.", 404);
-    if (!comment.user.equals(req.user._id)) throw new CustomError("권한이 없습니다.", 403);
+    if (!comment.userId.equals(req.user._id)) throw new CustomError("권한이 없습니다.", 403);
 
-    await comment.remove();
+    await comment.deleteOne();
     res.json({ success: true, message: "삭제되었습니다." });
   } catch (err) {
     next(err);

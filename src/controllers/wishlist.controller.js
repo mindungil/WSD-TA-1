@@ -9,9 +9,9 @@ export async function addWishlist(req, res, next) {
     const { bookId, note } = req.body;
     if (!bookId) throw new CustomError("bookId 필요", 400);
 
-    let book = await Book.findOne({ isbn });
+    let book = await Book.findById(bookId);
     if(!book) {
-      throw new CustomError("책 정보 없음", 402);
+      throw new CustomError("책 정보 없음", 404);
     }
 
     const entry = await Wishlist.create({ userId: req.user._id, bookId: book._id, note: note});
@@ -24,7 +24,7 @@ export async function addWishlist(req, res, next) {
 // 위시리스트 조회 - 페이지
 export async function getWishlist(req, res, next) {
   try {
-    const { userId } = req.user._id;
+    const userId = req.user._id;
     const { page, limit, skip } = getPagination(req);
 
     const [items, total] = await Promise.all([

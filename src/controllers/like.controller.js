@@ -1,7 +1,9 @@
 import ReviewLike from "../models/reviewLike.model.js";
 import CommentLike from "../models/commentLike.model.js";
 import Review from "../models/review.model.js";
+import Comment from "../models/comment.model.js";
 import { CustomError } from "../utils/CustomError.js";
+import { getPagination } from "../utils/paginate.js";
 
 // 리뷰
 // 좋아요 누르기
@@ -32,11 +34,11 @@ export async function likeReview(req, res, next) {
 export async function unlikeReview(req, res, next) {
   try {
     const { reviewId } = req.params;
-    const like = await reviewLike.findOne({ userId: req.user._id, reviewId: reviewId });
+    const like = await ReviewLike.findOne({ userId: req.user._id, reviewId: reviewId });
     if (!like) throw new CustomError("좋아요를 누르지 않았습니다.", 400);
 
-    await like.remove();
-    await Review.findByIdAndUpdate(reviewId, { $inc: { likesCount: -1 } });
+    await like.deleteOne();
+    await Review.findByIdAndUpdate(reviewId, { $inc: { likes: -1 } });
 
     res.json({ success: true, message: "좋아요 취소" });
   } catch (err) {
@@ -77,11 +79,11 @@ export async function likeComment(req, res, next) {
   try {
     const { commentId } = req.params;
     const comment = await Comment.findById(commentId);
-    if (!comment) throw new CustomError("리뷰가 존재하지 않습니다.", 404);
+    if (!comment) throw new CustomError("댓글이 존재하지 않습니다.", 404);
 
       // 중복 체크는 unique index가지만 race condition 완화 위해 시도
       try {
-        await like.create({ userId: req.user._id, commentId });
+        await CommentLike.create({ userId: req.user._id, commentId });
         comment.likes = (comment.likes || 0) + 1;
         await comment.save();
       } catch (e) {
@@ -100,10 +102,10 @@ export async function likeComment(req, res, next) {
 export async function unlikeComment(req, res, next) {
   try {
     const { commentId } = req.params;
-    const like = await CommentLike.findById(commentId);
+    const like = await CommentLike.findOne({ userId: req.user._id, commentId: commentId });
     if (!like) throw new CustomError("좋아요를 누르지 않았습니다.", 400);
 
-    await like.remove();
+    await like.deleteOne();
     await Comment.findByIdAndUpdate(commentId, { $inc: { likes: -1 } });
 
     res.json({ success: true, message: "좋아요 취소" });
@@ -131,7 +133,7 @@ export async function getLikeComments(req, res, next) {
       limit,
       total,
       totalPages: Math.ceil(total / limit),
-      data: likes.map(like => like.reviewId),
+      data: likes.map(like => like.commentId),
     });
   } catch (err) {
     next(err);

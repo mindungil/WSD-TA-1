@@ -11,7 +11,7 @@ export async function getReviews(req, res, next) {
 
     // 페이지 단위 캐시 키 생성
     const cacheKey = `reviews:top:page:${page}:limit:${limit}`;
-    const cached = await getRedis.get(cacheKey);
+    const cached = await getRedis().get(cacheKey);
 
     if (cached) {
       return res.json({ success: true, source: "cache", data: JSON.parse(cached) });
@@ -26,7 +26,7 @@ export async function getReviews(req, res, next) {
       .lean();
 
     // 캐시 저장 (예: 60초)
-    await getRedis.set(cacheKey, JSON.stringify(reviews), { EX: 60 });
+    await getRedis().set(cacheKey, JSON.stringify(reviews), { EX: 60 });
 
     res.json({ success: true, source: "db", data: reviews, page, limit });
   } catch (err) {
@@ -50,8 +50,16 @@ export async function createReview(req, res, next) {
 
     const review = await Review.create({ userId: req.user._id, bookId: book._id, title, content, rating });
 
-    // top10 캐시 무효화
-    await getRedis.del("reviews:top10");
+    // 캐시 무효화 - 모든 페이지 캐시 삭제
+    try {
+      const keys = await getRedis().keys("reviews:top:page:*");
+      if (keys.length > 0) {
+        await getRedis().del(keys);
+      }
+    } catch (cacheError) {
+      console.error("캐시 무효화 실패:", cacheError);
+      // 캐시 오류는 무시하고 계속 진행
+    }
 
     res.status(201).json({ success: true, data: review });
   } catch (err) {
@@ -73,7 +81,16 @@ export async function updateReview(req, res, next) {
     });
 
     await review.save();
-    await getRedis.del("reviews:top10");
+    // 캐시 무효화 - 모든 페이지 캐시 삭제
+    try {
+      const keys = await getRedis().keys("reviews:top:page:*");
+      if (keys.length > 0) {
+        await getRedis().del(keys);
+      }
+    } catch (cacheError) {
+      console.error("캐시 무효화 실패:", cacheError);
+      // 캐시 오류는 무시하고 계속 진행
+    }
     res.json({ success: true, data: review });
   } catch (err) {
     next(err);
@@ -89,9 +106,18 @@ export async function deleteReview(req, res, next) {
     if (!review.userId.equals(req.user._id)) throw new CustomError("권한이 없습니다.", 403);
 
     review.status = "DELETED";
-    review.save();
+    await review.save();
     
-    await getRedis.del("reviews:top10");
+    // 캐시 무효화 - 모든 페이지 캐시 삭제
+    try {
+      const keys = await getRedis().keys("reviews:top:page:*");
+      if (keys.length > 0) {
+        await getRedis().del(keys);
+      }
+    } catch (cacheError) {
+      console.error("캐시 무효화 실패:", cacheError);
+      // 캐시 오류는 무시하고 계속 진행
+    }
     res.json({ success: true, message: "삭제되었습니다." });
   } catch (err) {
     next(err);

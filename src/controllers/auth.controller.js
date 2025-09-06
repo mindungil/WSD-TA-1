@@ -17,7 +17,7 @@ export async function refresh(req, res) {
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    const newAccessToken = generateAccessToken({ _id: payload.userId });
+    const newAccessToken = generateAccessToken({ userId: payload.userId });
     res.json({ accessToken: newAccessToken });
   } catch (err) {
     res.status(403).json({ message: "Invalid refresh token" });

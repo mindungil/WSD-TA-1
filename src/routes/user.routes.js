@@ -4,12 +4,16 @@ import { authMiddleware } from "../middlewares/auth.js";
 import { getUserReviews } from "../controllers/review.controller.js";
 import wishRouter from "./wishlist.routes.js";
 import { getLikeReviews, getLikeComments } from "../controllers/like.controller.js";
+import libraryRouter from "./library.routes.js";
+import { refresh } from "../controllers/auth.controller.js";
 
 const userRouter = express.Router();
 
 // 회원가입 / 로그인
 userRouter.post("/register", userCtrl.register);
 userRouter.post("/login", userCtrl.login);
+userRouter.post("/logout", userCtrl.logout);
+userRouter.post("/refresh", refresh);
 
 // 본인 정보 조회/수정/탈퇴
 userRouter.get("/profile", authMiddleware, userCtrl.getProfile);
@@ -24,6 +28,9 @@ userRouter.get("/reviews/likes", authMiddleware, getLikeReviews);
 
 // 사용자가 좋아요 한 댓글 조회
 userRouter.get("/comments/likes", authMiddleware, getLikeComments);
+
+// 라이브러리 라우터
+userRouter.use("/library", libraryRouter);
 
 // 위시리스트 라우터
 userRouter.use("/wishlists", wishRouter);
