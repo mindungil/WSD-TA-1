@@ -7,7 +7,7 @@ const commentSchema = new Schema(
     reviewId: { type: Types.ObjectId, ref: "Review", required: true, index: true },
     userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
     content: { type: String, required: true },
-    status: { type: String, enum: ["ACTIVE", "DELETED"], default: "ACTIVE", index: true },
+    likes: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

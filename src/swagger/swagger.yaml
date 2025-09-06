@@ -1,0 +1,37 @@
+openapi: 3.0.0
+info:
+  title: Book Library API
+  description: 도서 관리 시스템 API
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+paths: {}
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Authentication
+    description: 사용자 인증 관련 API
+  - name: User
+    description: 사용자 관리 API
+  - name: Book
+    description: 도서 검색 및 조회 API
+  - name: Review
+    description: 리뷰 관리 API
+  - name: Comment
+    description: 댓글 관리 API
+  - name: Library
+    description: 개인 서재 관리 API
+  - name: Wishlist
+    description: 위시리스트 관리 API

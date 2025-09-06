@@ -4,15 +4,16 @@ const { Schema, model } = mongoose;
 
 const bookSchema = new Schema(
   {
-    _id: { type: String }, // isbn13
-    isbn10: { type: String },
+    isbn: { type: String, required: true, unique: true, index: true},
     title: { type: String, required: true },
     authors: { type: [String], default: [] },
     publisher: { type: String },
-    thumbnailUrl: { type: String },
+    price: {type: Number },
+    contents: { type: String },
+    sale_price: { type: Number },
+    thumbnail: { type: String },
     publishedAt: { type: String },
-    category: { type: [String], default: [] },
-    kakaoRaw: { type: Schema.Types.Mixed },
+    status: { type: String }
   },
   { timestamps: true }
 );
