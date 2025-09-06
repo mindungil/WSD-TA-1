@@ -1,0 +1,529 @@
+# swagger/book.yaml
+paths:
+  /api/books/search:
+    get:
+      tags:
+        - Book
+      summary: 책 검색
+      description: 카카오 API를 통해 책을 검색하고 서버 DB에 저장합니다.
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 검색할 책 제목
+          example: "데미안"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 책 검색 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      description: 카카오 API 검색 결과
+                  meta:
+                    type: object
+                    description: 페이지네이션 메타 정보
+        '404':
+          description: 책 제목이 전달되지 않음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/books/{bookId}:
+    get:
+      tags:
+        - Book
+      summary: 서버에 등록된 책 조회
+      description: 서버 DB에 저장된 특정 책의 정보를 조회합니다.
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 책 ID
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: 책 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Book'
+        '404':
+          description: bookId가 필요합니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/books/search/list:
+    get:
+      tags:
+        - Book
+      summary: 서버에 등록된 책 목록 조회
+      description: 서버 DB에 저장된 책을 제목으로 검색하고 페이지네이션으로 조회합니다.
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 검색할 책 제목 (부분 일치, 대소문자 구분 없음)
+          example: "데미안"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 책 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Book'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: 전체 항목 수
+                        example: 25
+                      page:
+                        type: integer
+                        description: 현재 페이지
+                        example: 1
+                      limit:
+                        type: integer
+                        description: 페이지당 항목 수
+                        example: 10
+                      totalPages:
+                        type: integer
+                        description: 전체 페이지 수
+                        example: 3
+        '404':
+          description: title이 필요합니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/books/{bookId}/library:
+    post:
+      tags:
+        - Library
+      summary: 라이브러리에 도서 등록
+      description: 특정 책을 회원의 라이브러리에 등록합니다. 책이 DB에 없으면 새로 생성합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 책 ID
+          example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - isbn
+                - title
+              properties:
+                isbn:
+                  type: string
+                  description: 도서 ISBN
+                  example: "9788936433598"
+                title:
+                  type: string
+                  description: 도서 제목
+                  example: "데미안"
+                authors:
+                  type: array
+                  items:
+                    type: string
+                  description: 저자 목록
+                  example: ["헤르만 헤세"]
+                publisher:
+                  type: string
+                  description: 출판사
+                  example: "창비"
+                thumbnail:
+                  type: string
+                  description: 도서 표지 이미지 URL
+                  example: "https://example.com/book-cover.jpg"
+                category:
+                  type: array
+                  items:
+                    type: string
+                  description: 카테고리 목록
+                  example: ["소설", "문학"]
+      responses:
+        '201':
+          description: 도서가 성공적으로 라이브러리에 등록됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Library'
+        '404':
+          description: bookId가 필요합니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/books/library/user/{userId}:
+    get:
+      tags:
+        - Library
+      summary: 회원의 라이브러리 목록 조회
+      description: 특정 회원의 라이브러리에 등록된 도서 목록을 페이지네이션으로 조회합니다.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 회원 ID
+          example: "507f1f77bcf86cd799439011"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 라이브러리 목록 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  total:
+                    type: integer
+                    example: 25
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Library'
+
+  /api/books/library/{userId}/{id}:
+    get:
+      tags:
+        - Library
+      summary: 라이브러리 도서 조회 (단일)
+      description: 특정 회원의 라이브러리에서 특정 도서의 상세 정보를 조회합니다.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 회원 ID
+          example: "507f1f77bcf86cd799439011"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 라이브러리 항목 ID (라이브러리 Object_id)
+          example: "507f191e810c19729de860ea"
+      responses:
+        '200':
+          description: 라이브러리 도서 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Library'
+        '404':
+          description: 해당 도서를 찾을 수 없습니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/books/library/{id}:
+    delete:
+      tags:
+        - Library
+      summary: 라이브러리 도서 삭제
+      description: 회원의 라이브러리에서 특정 도서를 삭제합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 라이브러리 항목 ID
+          example: "507f191e810c19729de860ea"
+      responses:
+        '200':
+          description: 도서 삭제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "삭제되었습니다."
+        '403':
+          description: 권한이 없습니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 해당 등록을 찾을 수 없습니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/books/{id}/isbn:
+    get:
+      tags:
+        - Book
+      summary: ISBN으로 책 조회
+      description: ISBN 번호로 특정 책을 조회합니다.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 책 ISBN 번호
+          example: "9788936433598"
+      responses:
+        '200':
+          description: 책 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Book'
+        '404':
+          description: 해당 도서가 존재하지 않습니다
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Book:
+      type: object
+      properties:
+        _id:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439011"
+        title:
+          type: string
+          example: "데미안"
+        authors:
+          type: array
+          items:
+            type: string
+          example: ["헤르만 헤세"]
+        publisher:
+          type: string
+          example: "창비"
+        price:
+          type: integer
+          example: 15000
+        sale_price:
+          type: integer
+          example: 13500
+        contents:
+          type: string
+          example: "책 내용 요약"
+        thumbnail:
+          type: string
+          example: "https://example.com/book-cover.jpg"
+        isbn:
+          type: string
+          example: "9788936433598"
+        publishedAt:
+          type: string
+          format: date-time
+          example: "2020-01-01T00:00:00.000Z"
+        status:
+          type: string
+          example: "정상판매"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00.000Z"
+
+    Library:
+      type: object
+      properties:
+        _id:
+          type: string
+          format: objectId
+          example: "507f191e810c19729de860ea"
+        userId:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439011"
+        bookId:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439012"
+        isbn:
+          type: string
+          example: "9788936433598"
+        memo:
+          type: string
+          example: "인상 깊었던 책"
+        labels:
+          type: array
+          items:
+            type: string
+          example: ["읽음", "추천"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00.000Z"
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "오류 메시지"
+        error:
+          type: string
+          example: "상세 오류 내용"

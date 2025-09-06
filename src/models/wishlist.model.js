@@ -5,7 +5,7 @@ const { Schema, model, Types } = mongoose;
 const wishlistSchema = new Schema(
   {
     userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
-    isbn: { type: String, ref: "Book", required: true },
+    bookId: { type: Types.ObjectId, ref: "Book", required: true },
     note: { type: String },
   },
   { timestamps: true }

@@ -2,11 +2,18 @@ import express from "express";
 import * as commentCtrl from "../controllers/comment.controller.js";
 import { authMiddleware } from "../middlewares/auth.js";
 
-const router = express.Router();
+const commentRouter = express.Router();
 
-router.post("/:reviewId", authMiddleware, commentCtrl.createComment);
-router.get("/:reviewId", commentCtrl.getCommentsByReview);
-router.put("/edit/:id", authMiddleware, commentCtrl.updateComment);
-router.delete("/delete/:id", authMiddleware, commentCtrl.deleteComment);
+// 댓글 생성
+commentRouter.post("/", authMiddleware, commentCtrl.createComment);
 
-export default router;
+// 댓글 조회
+commentRouter.get("/", commentCtrl.getCommentsByReview);
+
+// 댓글 수정
+commentRouter.put("/:commentId", authMiddleware, commentCtrl.updateComment);
+
+// 댓글 삭제
+commentRouter.delete("/:commentId", authMiddleware, commentCtrl.deleteComment);
+
+export default commentRouter;

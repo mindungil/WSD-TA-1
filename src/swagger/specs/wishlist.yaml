@@ -1,0 +1,333 @@
+paths:
+  /api/wishlist:
+    post:
+      tags:
+        - Wishlist
+      summary: 위시리스트 추가
+      description: 책을 위시리스트에 추가합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - isbn
+              properties:
+                isbn:
+                  type: string
+                  example: "9788936434267"
+                  description: 도서 ISBN 번호
+                title:
+                  type: string
+                  example: "어린왕자"
+                  description: 도서 제목 (참고용)
+                note:
+                  type: string
+                  example: "꼭 읽어보고 싶은 책"
+                  description: 개인 메모 (선택사항)
+      responses:
+        '201':
+          description: 위시리스트 추가 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/WishlistItem'
+        '400':
+          description: ISBN 누락
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "ISBN 필요"
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '402':
+          description: 책 정보 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "책 정보 없음"
+        '409':
+          description: 이미 위시리스트에 존재하는 책
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/wishlist/{userId}:
+    get:
+      tags:
+        - Wishlist
+      summary: 위시리스트 조회
+      description: 특정 사용자의 위시리스트를 페이지네이션으로 조회합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "64a7b8c9d1e2f3g4h5i6j7k8"
+          description: 조회할 사용자 ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+          description: 페이지 번호
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 위시리스트 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  total:
+                    type: integer
+                    example: 25
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WishlistItemWithBook'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /wishlist/{id}:
+    delete:
+      tags:
+        - Wishlist
+      summary: 위시리스트 삭제
+      description: 위시리스트에서 특정 항목을 삭제합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "64a7b8c9d1e2f3g4h5i6j7k8"
+          description: 삭제할 위시리스트 항목 ID
+      responses:
+        '200':
+          description: 위시리스트 삭제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "삭제되었습니다."
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 권한 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "권한 없음"
+        '404':
+          description: 위시리스트 항목 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "항목 없음"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT 토큰을 Bearer 형식으로 전달
+
+  schemas:
+    Book:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: 도서 고유 ID
+          example: "64a7b8c9d1e2f3g4h5i6j7k8"
+        isbn:
+          type: string
+          description: 도서 ISBN
+          example: "9788936434267"
+        title:
+          type: string
+          description: 도서 제목
+          example: "어린왕자"
+        authors:
+          type: array
+          items:
+            type: string
+          description: 저자 목록
+          example: ["생텍쥐페리"]
+        publisher:
+          type: string
+          description: 출판사
+          example: "창비"
+        thumbnail:
+          type: string
+          description: 도서 썸네일 URL
+          example: "https://example.com/thumbnail.jpg"
+        publishedAt:
+          type: string
+          description: 출간일
+          example: "2015-11-15"
+        category:
+          type: array
+          items:
+            type: string
+          description: 도서 카테고리
+          example: ["소설", "고전문학"]
+        kakaoRaw:
+          type: object
+          description: 카카오 API 원본 데이터
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성일
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정일
+          example: "2024-01-15T10:30:00.000Z"
+
+    WishlistItem:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: 위시리스트 항목 고유 ID
+          example: "64a7b8c9d1e2f3g4h5i6j7k8"
+        userId:
+          type: string
+          description: 사용자 ID
+          example: "64a7b8c9d1e2f3g4h5i6j7k8"
+        bookId:
+          type: string
+          description: 도서 ID
+          example: "64a7b8c9d1e2f3g4h5i6j7k8"
+        note:
+          type: string
+          description: 개인 메모
+          example: "꼭 읽어보고 싶은 책"
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성일
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정일
+          example: "2024-01-15T10:30:00.000Z"
+      required:
+        - _id
+        - userId
+        - bookId
+
+    WishlistItemWithBook:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: 위시리스트 항목 고유 ID
+          example: "64a7b8c9d1e2f3g4h5i6j7k8"
+        userId:
+          type: string
+          description: 사용자 ID
+          example: "64a7b8c9d1e2f3g4h5i6j7k8"
+        bookId:
+          $ref: '#/components/schemas/Book'
+        note:
+          type: string
+          description: 개인 메모
+          example: "꼭 읽어보고 싶은 책"
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성일
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정일
+          example: "2024-01-15T10:30:00.000Z"
+      required:
+        - _id
+        - userId
+        - bookId
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "에러 메시지"
+      required:
+        - success
+        - message

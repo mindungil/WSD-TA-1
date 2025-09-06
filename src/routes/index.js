@@ -1,18 +1,15 @@
 import express from "express";
-import bookRoutes from "./book.routes.js";
-import reviewRoutes from "./review.routes.js";
-import commentRoutes from "./comment.routes.js";
-import likeRoutes from "./like.routes.js";
-import wishlistRoutes from "./wishlist.routes.js";
-import userRoutes from "./user.routes.js";
+import bookRouter from "./book.routes.js";
+import reviewRouter from "./review.routes.js";
+import likeRouter from "./reviewLike.routes.js";
+import wishlistRouter from "./wishlist.routes.js";
+import userRouter from "./user.routes.js";
+import libraryRouter from "./library.routes.js";
+import Review from "../models/review.model.js";
 
 const router = express.Router();
 
-router.use("/books", bookRoutes);
-router.use("/reviews", reviewRoutes);
-router.use("/comments", commentRoutes);
-router.use("/likes", likeRoutes);
-router.use("/wishlist", wishlistRoutes);
-router.use("/users", userRoutes);
+router.use("/books", bookRouter);
+router.use("/users", userRouter);
 
 export default router;

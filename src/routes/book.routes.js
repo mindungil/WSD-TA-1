@@ -1,13 +1,27 @@
 import express from "express";
 import * as bookCtrl from "../controllers/book.controller.js";
 import { authMiddleware } from "../middlewares/auth.js";
+import libraryRouter from "./library.routes.js";
+import reviewRouter from "./review.routes.js";
 
-const router = express.Router();
+const bookRouter = express.Router();
 
-router.get("/search", bookCtrl.searchExternalBooks);
-router.post("/library", authMiddleware, bookCtrl.addBookToLibrary);
-router.get("/library/user/:userId", bookCtrl.getLibraryByUser);
-router.get("/library/:userId/:id", bookCtrl.getLibraryItem);
-router.delete("/library/:id", authMiddleware, bookCtrl.deleteLibraryItem);
+// 도서 검색(카카오 API)
+bookRouter.get("/search", bookCtrl.searchBook);
 
-export default router;
+// 도서 단일 조회
+bookRouter.get("/:bookId", bookCtrl.getBook);
+
+// 도서 목록 조회
+bookRouter.get("/", bookCtrl.getBookList);
+
+// isbn으로 도서 조회
+bookRouter.get("/:isbn", bookCtrl.getBookToIsbn);
+
+// 리뷰 라우터
+bookRouter.use("/:bookId/reviews", reviewRouter);
+
+// 라이브러리 라우터
+bookRouter.use("/:bookId/library", libraryRouter);
+
+export default bookRouter;

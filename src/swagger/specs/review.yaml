@@ -1,0 +1,461 @@
+# swagger/specs/review.yaml
+paths:
+  /api/reviews/top:
+    get:
+      tags:
+        - Review
+      summary: 좋아요 상위 10개 리뷰 조회
+      description: 좋아요 수가 많은 상위 10개 리뷰를 조회합니다. Redis 캐싱을 사용합니다.
+      responses:
+        '200':
+          description: 상위 10개 리뷰 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  source:
+                    type: string
+                    enum: ["cache", "db"]
+                    example: "cache"
+                    description: 데이터 소스 (캐시 또는 DB)
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Review'
+                        - type: object
+                          properties:
+                            userId:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  format: objectId
+                                nickname:
+                                  type: string
+
+  /api/reviews:
+    post:
+      tags:
+        - Review
+      summary: 리뷰 생성
+      description: 새로운 리뷰를 생성합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bookId
+                - content
+              properties:
+                bookId:
+                  type: string
+                  format: objectId
+                  description: 도서 ID
+                  example: "507f1f77bcf86cd799439011"
+                title:
+                  type: string
+                  description: 리뷰 제목
+                  example: "정말 감명깊은 책이었습니다"
+                content:
+                  type: string
+                  description: 리뷰 내용
+                  example: "이 책을 읽고 많은 것을 깨달았습니다..."
+                rating:
+                  type: number
+                  minimum: 0
+                  maximum: 5
+                  description: 평점 (0-5)
+                  example: 4.5
+      responses:
+        '201':
+          description: 리뷰 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Review'
+        '400':
+          description: 잘못된 요청 (bookId 또는 content 누락)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 책 정보를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Review
+      summary: 전체 리뷰 조회
+      description: 모든 리뷰를 페이지네이션으로 조회합니다.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 전체 리뷰 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  total:
+                    type: integer
+                    example: 100
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Review'
+                        - type: object
+                          properties:
+                            userId:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  format: objectId
+                                nickname:
+                                  type: string
+
+  /api/reviews/{id}:
+    put:
+      tags:
+        - Review
+      summary: 리뷰 수정
+      description: 기존 리뷰를 수정합니다. 본인의 리뷰만 수정 가능합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 리뷰 ID
+          example: "507f191e810c19729de860ea"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: 리뷰 제목
+                  example: "수정된 리뷰 제목"
+                content:
+                  type: string
+                  description: 리뷰 내용
+                  example: "수정된 리뷰 내용입니다."
+      responses:
+        '200':
+          description: 리뷰 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Review'
+        '403':
+          description: 권한 없음 (본인의 리뷰가 아님)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 리뷰를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Review
+      summary: 리뷰 삭제
+      description: 리뷰를 삭제합니다. 본인의 리뷰만 삭제 가능합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 리뷰 ID
+          example: "507f191e810c19729de860ea"
+      responses:
+        '200':
+          description: 리뷰 삭제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "삭제되었습니다."
+        '403':
+          description: 권한 없음 (본인의 리뷰가 아님)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 리뷰를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/reviews/book/{bookId}:
+    get:
+      tags:
+        - Review
+      summary: 특정 도서 리뷰 조회
+      description: 특정 도서에 대한 모든 리뷰를 페이지네이션으로 조회합니다.
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 도서 ID
+          example: "507f1f77bcf86cd799439011"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 특정 도서 리뷰 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  total:
+                    type: integer
+                    example: 25
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Review'
+                        - type: object
+                          properties:
+                            userId:
+                              type: object
+                              properties:
+                                _id:
+                                  type: string
+                                  format: objectId
+                                nickname:
+                                  type: string
+
+  /api/reviews/book/{bookId}/{reviewId}:
+    get:
+      tags:
+        - Review
+      summary: 특정 유저의 특정 도서 리뷰 조회
+      description: 특정 유저가 특정 도서에 작성한 리뷰를 조회합니다.
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 도서 ID
+          example: "507f1f77bcf86cd799439011"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: 사용자 ID
+          example: "507f1f77bcf86cd799439012"
+      responses:
+        '200':
+          description: 리뷰 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Review'
+                      - type: object
+                        properties:
+                          userId:
+                            type: object
+                            properties:
+                              _id:
+                                type: string
+                                format: objectId
+                              nickname:
+                                type: string
+        '404':
+          description: 리뷰를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Review:
+      type: object
+      properties:
+        _id:
+          type: string
+          format: objectId
+          example: "507f191e810c19729de860ea"
+        bookId:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439011"
+        userId:
+          type: string
+          format: objectId
+          example: "507f1f77bcf86cd799439012"
+        title:
+          type: string
+          example: "정말 좋은 책입니다"
+        content:
+          type: string
+          example: "이 책을 읽고 많은 것을 배웠습니다. 특히 주인공의 성장 과정이 인상깊었어요."
+        rating:
+          type: number
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        likesCount:
+          type: number
+          example: 15
+          description: 좋아요 수
+        commentCount:
+          type: number
+          example: 3
+          description: 댓글 수
+        status:
+          type: string
+          enum: ["ACTIVE", "DELETED"]
+          example: "ACTIVE"
+          description: 리뷰 상태
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00.000Z"
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "오류 메시지"
+        error:
+          type: string
+          example: "상세 오류 내용"

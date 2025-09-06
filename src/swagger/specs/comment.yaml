@@ -1,0 +1,276 @@
+paths:
+  /reviews/{reviewId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: 댓글 등록
+      description: 특정 리뷰에 댓글을 등록합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+          description: 리뷰 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  description: 댓글 내용
+                  example: "정말 좋은 리뷰네요!"
+      responses:
+        '201':
+          description: 댓글 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Comment'
+        '400':
+          description: 잘못된 요청 (댓글 내용 누락)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 리뷰를 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    get:
+      tags:
+        - Comments
+      summary: 리뷰별 댓글 조회
+      description: 특정 리뷰의 댓글을 페이지네이션으로 조회합니다.
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+          description: 리뷰 ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 댓글 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  total:
+                    type: integer
+                    example: 25
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommentWithUser'
+
+  /comments/{commentId}:
+    put:
+      tags:
+        - Comments
+      summary: 댓글 수정
+      description: 자신의 댓글을 수정합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: 댓글 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: 수정할 댓글 내용
+                  example: "수정된 댓글 내용입니다."
+      responses:
+        '200':
+          description: 댓글 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Comment'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 권한 없음 (자신의 댓글이 아님)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 댓글을 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      tags:
+        - Comments
+      summary: 댓글 삭제
+      description: 자신의 댓글을 삭제합니다.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: 댓글 ID
+      responses:
+        '200':
+          description: 댓글 삭제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "삭제되었습니다."
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 권한 없음 (자신의 댓글이 아님)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 댓글을 찾을 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Comment:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: 댓글 ID
+          example: "60f7b1b3b3f3b3f3b3f3b3f3"
+        userId:
+          type: string
+          description: 사용자 ID
+          example: "60f7b1b3b3f3b3f3b3f3b3f2"
+        reviewId:
+          type: string
+          description: 리뷰 ID
+          example: "60f7b1b3b3f3b3f3b3f3b3f1"
+        content:
+          type: string
+          description: 댓글 내용
+          example: "정말 좋은 리뷰네요!"
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 일시
+          example: "2024-01-01T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 일시
+          example: "2024-01-01T12:30:00.000Z"
+    
+    CommentWithUser:
+      allOf:
+        - $ref: '#/components/schemas/Comment'
+        - type: object
+          properties:
+            userId:
+              type: object
+              properties:
+                _id:
+                  type: string
+                  description: 사용자 ID
+                  example: "60f7b1b3b3f3b3f3b3f3b3f2"
+                nickname:
+                  type: string
+                  description: 사용자 닉네임
+                  example: "독서왕"
+    
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "에러 메시지"
