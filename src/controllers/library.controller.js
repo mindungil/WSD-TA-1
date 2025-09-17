@@ -36,7 +36,7 @@ export async function getLibraryList(req, res, next) {
       Library.countDocuments({ userId: userId }),
     ]);
 
-    return res.json({ success: true, page, limit, total, data: items });
+    return res.json({ success: true, data: items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
     next(err);
   }
@@ -45,16 +45,20 @@ export async function getLibraryList(req, res, next) {
 // 라이브러리 도서 조회(단일)
 export async function getLibraryOne(req, res, next) {
   try {
-    const title = req.query.title;
-    const id = req.user._id;
-    const book = await Book.findOne({title: title});
-    if (!book) {
-      return res.json({ success: true, data: null });
+    const { bookId, isbn } = req.query;
+    const userId = req.user._id;
+
+    if (!bookId && !isbn) throw new CustomError("bookId 또는 isbn이 필요합니다.", 400);
+
+    let filter;
+    if (bookId) {
+      filter = { userId, bookId };
+    } else {
+      filter = { userId, isbn };
     }
-    const item = await Library.findOne({ userId: id, bookId: book._id});
-    // 반환값 없어도 오류 아님
-    // if (!item) throw new CustomError("해당 도서를 찾을 수 없습니다.", 404);
-    res.json({ success: true, data: item });
+
+    const item = await Library.findOne(filter);
+    return res.json({ success: true, data: item });
   } catch (err) {
     next(err);
   }

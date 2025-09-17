@@ -8,7 +8,7 @@ const reviewSchema = new Schema(
     userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
     title: { type: String },
     content: { type: String, required: true },
-    rating: { type: Number, min: 0, max: 5 },
+    rating: { type: Number, min: 0, max: 5, required: true },
     likes: { type: Number, default: 0, index: true },
     status: { type: String, enum: ["ACTIVE", "DELETED"], default: "ACTIVE" },
   },

@@ -137,9 +137,12 @@ Authorization: Bearer <access_token>
 
 ## 📖 도서 API
 
-### 도서 검색 (카카오 API)
+### 도서 등록 (CSV 업로드)
 ```http
-GET /api/books/search?title=검색어&page=1&size=10
+POST /api/books/import/csv
+Content-Type: multipart/form-data (file)
+
+file: kyobo_books.csv
 ```
 
 ### 서버 DB 도서 조회
@@ -196,7 +199,7 @@ Authorization: Bearer <access_token>
 ```http
 POST /api/users/library
 GET /api/users/library/list?page=1&limit=10
-GET /api/users/library?title=도서제목
+GET /api/users/library?bookId=... | ?isbn=...
 DELETE /api/users/library/{libraryId}
 Authorization: Bearer <access_token>
 ```
@@ -242,7 +245,10 @@ Authorization: Bearer <access_token>
   "contents": "String",
   "thumbnail": "String",
   "publishedAt": "String",
-  "status": "String"
+  "status": "String",
+  "categories": ["String"],
+  "reviewCount": "Number",
+  "averageRating": "Number"
 }
 ```
 
@@ -254,7 +260,7 @@ Authorization: Bearer <access_token>
   "userId": "ObjectId (ref: User)",
   "title": "String",
   "content": "String",
-  "rating": "Number (0-5)",
+  "rating": "Number (0-5, required)",
   "likes": "Number",
   "status": "String (ACTIVE/DELETED)"
 }
@@ -330,7 +336,7 @@ API는 일관된 에러 응답 형식을 사용합니다:
 
 ## ⚡ 성능 최적화
 
-- **Redis 캐싱**: 리뷰 목록 조회 (60초 TTL)
+- **Redis 캐싱**: 리뷰 목록 조회 (60초 TTL), 버전 키 기반 무효화
 - **데이터베이스 인덱싱**: 자주 조회되는 필드에 인덱스 설정
 - **페이지네이션**: 모든 목록 조회에 적용
 - **Bulk Operations**: 도서 검색 시 효율적인 DB 업데이트

@@ -1,36 +1,24 @@
 paths:
-  /api/books/search:
-    get:
+  /api/books/import/csv:
+    post:
       tags:
         - Book
-      summary: 책 검색
-      description: 카카오 API를 통해 책을 검색하고 서버 DB에 저장합니다.
-      parameters:
-        - name: title
-          in: query
-          required: true
-          schema:
-            type: string
-          description: 검색할 책 제목
-          example: "데미안"
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: 페이지 번호
-        - name: size
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 50
-            default: 10
-          description: 페이지당 항목 수
+      summary: CSV 파일로 도서 등록
+      description: 크롤링한 교보문고 CSV를 업로드하여 도서를 DB에 등록/갱신합니다.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV 파일. 헤더 예시: isbn,title,authors,publisher,price,sale_price,contents,thumbnail,publishedAt,status,categories (authors/categories는 '|' 구분)
       responses:
         '200':
-          description: 책 검색 성공
+          description: 도서 등록/갱신 성공
           content:
             application/json:
               schema:
@@ -40,62 +28,14 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    type: array
-                    items:
-                      type: object
-                      description: 카카오 API 검색 결과
-                      properties:
-                        title:
-                          type: string
-                          example: "데미안"
-                        authors:
-                          type: array
-                          items:
-                            type: string
-                          example: ["헤르만 헤세"]
-                        publisher:
-                          type: string
-                          example: "창비"
-                        price:
-                          type: integer
-                          example: 15000
-                        sale_price:
-                          type: integer
-                          example: 13500
-                        contents:
-                          type: string
-                          example: "책 내용 요약"
-                        thumbnail:
-                          type: string
-                          example: "https://example.com/book-cover.jpg"
-                        isbn:
-                          type: string
-                          example: "9788936433598"
-                        datetime:
-                          type: string
-                          example: "2020-01-01T00:00:00.000Z"
-                        status:
-                          type: string
-                          example: "정상판매"
-                  meta:
                     type: object
-                    description: 페이지네이션 메타 정보
                     properties:
-                      total_count:
+                      upserted:
                         type: integer
-                        example: 100
-                      pageable_count:
+                        example: 120
+                      modified:
                         type: integer
-                        example: 10
-                      is_end:
-                        type: boolean
-                        example: false
-        '404':
-          description: 책 제목이 전달되지 않음
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                        example: 45
 
   /api/books:
     get:

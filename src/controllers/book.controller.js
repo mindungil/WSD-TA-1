@@ -2,62 +2,76 @@ import Book from "../models/book.model.js";
 import Library from "../models/library.model.js";
 import { CustomError } from "../utils/CustomError.js";
 import { getPagination } from "../utils/paginate.js";
-import axios from "axios";
-import dotenv from 'dotenv';
+import fs from "fs";
+import { parse } from "csv-parse";
+import multer from "multer";
 
-dotenv.config();
+// CSV 업로드용 multer 설정 (메모리 저장)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // 책 검색 및 저장
-export async function searchBook(req, res, next) {
+// CSV 파일을 업로드하여 도서 등록
+export const uploadCsvMiddleware = upload.single("file");
+
+export async function importBooksFromCsv(req, res, next) {
   try {
-    const title = req.query.title;
-    const page = req.query.page || 1;
-    const size = req.query.size || 10;
+    if (!req.file) throw new CustomError("CSV 파일이 필요합니다.", 400);
 
-    if(!title) throw new CustomError("책 제목이 전달되지 않았습니다.", 404);
+    const csvBuffer = req.file.buffer;
+    const parser = parse({ columns: true, trim: true });
 
-    const response = await axios.get("https://dapi.kakao.com/v3/search/book", {
-      params: {
-        target: "title",
-        query: title,
-        page,
-        size
-      },
-      headers: {
-        Authorization: `KakaoAK ${process.env.KAKAO_API_KEY}`,
-      },
+    const records = [];
+    parser.on("readable", () => {
+      let record;
+      while ((record = parser.read()) !== null) {
+        records.push(record);
+      }
+    });
+    parser.on("error", (err) => next(err));
+
+    parser.on("end", async () => {
+      try {
+        // CSV 컬럼 가정: isbn,title,authors,publisher,price,sale_price,contents,thumbnail,publishedAt,status,categories
+        const bulkOps = records.map((r) => {
+          const authors = r.authors ? String(r.authors).split("|").map((s) => s.trim()).filter(Boolean) : [];
+          const categories = r.categories ? String(r.categories).split("|").map((s) => s.trim()).filter(Boolean) : [];
+          return {
+            updateOne: {
+              filter: { isbn: r.isbn },
+              update: {
+                $set: {
+                  title: r.title,
+                  authors,
+                  publisher: r.publisher || undefined,
+                  price: r.price ? Number(r.price) : undefined,
+                  sale_price: r.sale_price ? Number(r.sale_price) : undefined,
+                  contents: r.contents || undefined,
+                  thumbnail: r.thumbnail || undefined,
+                  publishedAt: r.publishedAt || undefined,
+                  status: r.status || undefined,
+                  categories,
+                },
+                $setOnInsert: { isbn: r.isbn },
+              },
+              upsert: true,
+            },
+          };
+        });
+
+        if (bulkOps.length === 0) {
+          return res.status(400).json({ success: false, message: "CSV 데이터가 비어 있습니다." });
+        }
+
+        const result = await Book.bulkWrite(bulkOps, { ordered: false });
+        return res.status(200).json({ success: true, data: { upserted: result.upsertedCount, modified: result.modifiedCount } });
+      } catch (e) {
+        next(e);
+      }
     });
 
-    // 책 정보 서버 DB에 삽입
-    const bulkOps = response.data.documents.map((doc) => ({
-      updateOne: {
-        filter: { isbn: doc.isbn },
-        update: {
-          $setOnInsert: {
-            title: doc.title,
-            authors: doc.authors,
-            publisher: doc.publisher,
-            price: doc.price,
-            sale_price: doc.sale_price,
-            contents: doc.contents,
-            thumbnail: doc.thumbnail,
-            isbn: doc.isbn,
-            publishedAt: doc.datetime,
-            status: doc.status
-          },
-        },
-        upsert: true,
-      },
-    }));
-
-    const result = await Book.bulkWrite(bulkOps)
-
-    return res.status(200).json({
-      success: true,
-      data: response.data.documents,
-      meta: response.data.meta
-    });
-  } catch(err) {
+    parser.write(csvBuffer);
+    parser.end();
+  } catch (err) {
     next(err);
   }
 }
@@ -98,9 +112,9 @@ export async function getBookList(req, res, next) {
       success: true,
       data: books,
       pagination: {
-        total,               
-        page,                
-        limit,               
+        total,
+        page,
+        limit,
         totalPages: Math.ceil(total / limit),
       },
     });

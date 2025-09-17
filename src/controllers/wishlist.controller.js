@@ -31,10 +31,11 @@ export async function getWishlist(req, res, next) {
       Wishlist.find({ userId: userId })
         .populate("bookId")
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Wishlist.countDocuments({ userId: userId }),
     ]);
-    res.json({ success: true, page, limit, total, data: items });
+    res.json({ success: true, data: items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
     next(err);
   }

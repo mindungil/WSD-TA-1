@@ -56,21 +56,29 @@ paths:
     get:
       tags:
         - Library
-      summary: 라이브러리 도서 검색
-      description: 사용자의 라이브러리에서 특정 제목의 도서를 검색합니다.
+      summary: 라이브러리 도서 단일 조회
+      description: 사용자의 라이브러리에서 특정 도서 등록 여부를 조회합니다.
       security:
         - bearerAuth: []
       parameters:
-        - name: title
+        - name: bookId
           in: query
-          required: true
+          required: false
           schema:
             type: string
-          description: 검색할 책 제목
-          example: "데미안"
+            format: objectId
+          description: 조회할 책 ID (isbn과 둘 중 하나 제공)
+          example: "507f1f77bcf86cd799439011"
+        - name: isbn
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 조회할 책 ISBN (bookId와 둘 중 하나 제공)
+          example: "9788936433598"
       responses:
         '200':
-          description: 도서 검색 성공
+          description: 도서 등록 여부 조회 성공
           content:
             application/json:
               schema:
@@ -83,7 +91,7 @@ paths:
                     allOf:
                       - $ref: '#/components/schemas/Library'
                       - nullable: true
-                      - description: 검색된 도서 정보 (없으면 null)
+                      - description: 등록된 도서 정보 (없으면 null)
         '401':
           description: 인증 실패
           content:

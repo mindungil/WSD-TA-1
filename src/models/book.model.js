@@ -13,7 +13,10 @@ const bookSchema = new Schema(
     sale_price: { type: Number },
     thumbnail: { type: String },
     publishedAt: { type: String },
-    status: { type: String }
+    status: { type: String },
+    categories: { type: [String], default: [] },
+    reviewCount: { type: Number, default: 0, index: true },
+    averageRating: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

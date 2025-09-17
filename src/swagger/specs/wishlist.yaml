@@ -91,15 +91,6 @@ paths:
                   success:
                     type: boolean
                     example: true
-                  page:
-                    type: integer
-                    example: 1
-                  limit:
-                    type: integer
-                    example: 10
-                  total:
-                    type: integer
-                    example: 25
                   data:
                     type: array
                     items:
@@ -111,6 +102,18 @@ paths:
                               allOf:
                                 - $ref: '#/components/schemas/Book'
                                 - description: 책 정보가 populate됨
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total:
+                        type: integer
+                        example: 25
         '401':
           description: 인증 실패
           content:

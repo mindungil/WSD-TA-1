@@ -8,9 +8,12 @@ import { getRedis } from "../config/redis.config.js";
 export async function getReviews(req, res, next) {
   try {
     const { page, limit, skip } = getPagination(req);
+    const { bookId } = req.params;
 
     // 페이지 단위 캐시 키 생성
-    const cacheKey = `reviews:top:page:${page}:limit:${limit}`;
+    // 버전 키를 사용해 대량 무효화 비용을 줄임
+    const version = (await getRedis().get("reviews:top:version")) || "0";
+    const cacheKey = `reviews:top:v:${version}:book:${bookId || 'all'}:page:${page}:limit:${limit}`;
     const cached = await getRedis().get(cacheKey);
 
     if (cached) {
@@ -18,7 +21,8 @@ export async function getReviews(req, res, next) {
     }
 
     // DB 조회
-    const reviews = await Review.find({status: "ACTIVE"})
+    const filter = { status: "ACTIVE", ...(bookId ? { bookId } : {}) };
+    const reviews = await Review.find(filter)
       .sort({ likes: -1 })
       .skip(skip)
       .limit(limit)
@@ -28,7 +32,7 @@ export async function getReviews(req, res, next) {
     // 캐시 저장 (예: 60초)
     await getRedis().set(cacheKey, JSON.stringify(reviews), { EX: 60 });
 
-    res.json({ success: true, source: "db", data: reviews, page, limit });
+    res.json({ success: true, source: "db", data: reviews, pagination: { page, limit } });
   } catch (err) {
     next(err);
   }
@@ -49,13 +53,32 @@ export async function createReview(req, res, next) {
     }
 
     const review = await Review.create({ userId: req.user._id, bookId: book._id, title, content, rating });
+    // Book 집계 업데이트
+    if (typeof rating === "number") {
+      const incReviewCount = 1;
+      // 가중 평균 업데이트: avg' = (avg * n + r) / (n + 1)
+      await Book.updateOne(
+        { _id: book._id },
+        [
+          {
+            $set: {
+              reviewCount: { $add: ["$reviewCount", incReviewCount] },
+              averageRating: {
+                $cond: [
+                  { $gt: ["$reviewCount", 0] },
+                  { $divide: [ { $add: [ { $multiply: ["$averageRating", "$reviewCount"] }, rating ] }, { $add: ["$reviewCount", incReviewCount] } ] },
+                  rating
+                ]
+              }
+            }
+          }
+        ]
+      );
+    }
 
     // 캐시 무효화 - 모든 페이지 캐시 삭제
     try {
-      const keys = await getRedis().keys("reviews:top:page:*");
-      if (keys.length > 0) {
-        await getRedis().del(keys);
-      }
+      await getRedis().incr("reviews:top:version");
     } catch (cacheError) {
       console.error("캐시 무효화 실패:", cacheError);
       // 캐시 오류는 무시하고 계속 진행
@@ -75,18 +98,36 @@ export async function updateReview(req, res, next) {
     if (!review) throw new CustomError("리뷰를 찾을 수 없습니다.", 404);
     if (!review.userId.equals(req.user._id)) throw new CustomError("권한이 없습니다.", 403);
 
-    const allowed = ["title", "content"];
+    const oldRating = review.rating;
+    const allowed = ["title", "content", "rating"];
     allowed.forEach((k) => {
       if (req.body[k] !== undefined) review[k] = req.body[k];
     });
 
     await review.save();
+    // Book 집계 업데이트 (rating 변경 시)
+    if (typeof req.body.rating === "number" && req.body.rating !== oldRating) {
+      const delta = req.body.rating - (oldRating || 0);
+      await Book.updateOne(
+        { _id: review.bookId },
+        [
+          {
+            $set: {
+              averageRating: {
+                $cond: [
+                  { $gt: ["$reviewCount", 0] },
+                  { $divide: [ { $add: [ { $multiply: ["$averageRating", "$reviewCount"] }, delta ] }, "$reviewCount" ] },
+                  req.body.rating
+                ]
+              }
+            }
+          }
+        ]
+      );
+    }
     // 캐시 무효화 - 모든 페이지 캐시 삭제
     try {
-      const keys = await getRedis().keys("reviews:top:page:*");
-      if (keys.length > 0) {
-        await getRedis().del(keys);
-      }
+      await getRedis().incr("reviews:top:version");
     } catch (cacheError) {
       console.error("캐시 무효화 실패:", cacheError);
       // 캐시 오류는 무시하고 계속 진행
@@ -107,13 +148,30 @@ export async function deleteReview(req, res, next) {
 
     review.status = "DELETED";
     await review.save();
+    // Book 집계 업데이트 (DELETED 처리 시 평균/카운트 보정)
+    if (typeof review.rating === "number") {
+      await Book.updateOne(
+        { _id: review.bookId },
+        [
+          {
+            $set: {
+              reviewCount: { $max: [0, { $subtract: ["$reviewCount", 1] }] },
+              averageRating: {
+                $cond: [
+                  { $gt: [ { $subtract: ["$reviewCount", 1] }, 0 ] },
+                  { $divide: [ { $subtract: [ { $multiply: ["$averageRating", "$reviewCount"] }, review.rating ] }, { $subtract: ["$reviewCount", 1] } ] },
+                  0
+                ]
+              }
+            }
+          }
+        ]
+      );
+    }
     
     // 캐시 무효화 - 모든 페이지 캐시 삭제
     try {
-      const keys = await getRedis().keys("reviews:top:page:*");
-      if (keys.length > 0) {
-        await getRedis().del(keys);
-      }
+      await getRedis().incr("reviews:top:version");
     } catch (cacheError) {
       console.error("캐시 무효화 실패:", cacheError);
       // 캐시 오류는 무시하고 계속 진행
@@ -135,7 +193,7 @@ export async function getUserReviews(req, res, next) {
       .limit(limit)      
       .lean();           
 
-    res.json({ page, limit, reviews });
+    res.json({ success: true, data: reviews, pagination: { page, limit } });
   } catch (err) {
     next(err);
   }

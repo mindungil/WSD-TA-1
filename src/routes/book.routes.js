@@ -6,8 +6,8 @@ import reviewRouter from "./review.routes.js";
 
 const bookRouter = express.Router();
 
-// 도서 검색(카카오 API)
-bookRouter.get("/search", bookCtrl.searchBook);
+// CSV 업로드로 도서 등록
+bookRouter.post("/import/csv", bookCtrl.uploadCsvMiddleware, bookCtrl.importBooksFromCsv);
 
 // 도서 목록 조회
 bookRouter.get("/", bookCtrl.getBookList);

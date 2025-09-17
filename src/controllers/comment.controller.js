@@ -28,10 +28,10 @@ export async function getCommentsByReview(req, res, next) {
     const { page, limit, skip } = getPagination(req);
 
     const [items, total] = await Promise.all([
-      Comment.find({ reviewId: reviewId }).populate("userId", "nickname").skip(skip).limit(limit),
+      Comment.find({ reviewId: reviewId }).populate("userId", "nickname").skip(skip).limit(limit).lean(),
       Comment.countDocuments({ reviewId: reviewId }),
     ]);
-    res.json({ success: true, page, limit, total, data: items });
+    res.json({ success: true, data: items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
     next(err);
   }

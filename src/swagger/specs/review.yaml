@@ -3,8 +3,8 @@ paths:
     get:
       tags:
         - Review
-      summary: 리뷰들 조회
-      description: 좋아요 상위 리뷰들을 페이지네이션으로 조회합니다. Redis 캐싱을 사용합니다.
+      summary: 도서별 상위 리뷰 조회
+      description: 특정 도서의 좋아요 상위 리뷰들을 페이지네이션으로 조회합니다. Redis 캐싱을 사용합니다.
       parameters:
         - name: bookId
           in: path
@@ -60,12 +60,15 @@ paths:
                                   format: objectId
                                 nickname:
                                   type: string
-                  page:
-                    type: integer
-                    example: 1
-                  limit:
-                    type: integer
-                    example: 10
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
 
     post:
       tags:

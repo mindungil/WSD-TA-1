@@ -13,11 +13,10 @@ export async function likeReview(req, res, next) {
     const review = await Review.findById(reviewId);
     if (!review) throw new CustomError("리뷰가 존재하지 않습니다.", 404);
 
-      // 중복 체크는 unique index가지만 race condition 완화 위해 시도
+      // 중복 체크는 unique index가지만 race condition 완화를 위해 생성 성공 시 원자적 증가
       try {
         await ReviewLike.create({ userId: req.user._id, reviewId: reviewId });
-        review.likes = (review.likes || 0) + 1;
-        await review.save();
+        await Review.updateOne({ _id: reviewId }, { $inc: { likes: 1 } });
       } catch (e) {
         if (e.code === 11000) {
           throw new CustomError("이미 좋아요를 눌렀습니다.", 409);
@@ -61,11 +60,13 @@ export async function getLikeReviews(req, res, next) {
 
     res.json({
       success: true,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
       data: likes.map(like => like.reviewId),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (err) {
     next(err);
@@ -81,11 +82,10 @@ export async function likeComment(req, res, next) {
     const comment = await Comment.findById(commentId);
     if (!comment) throw new CustomError("댓글이 존재하지 않습니다.", 404);
 
-      // 중복 체크는 unique index가지만 race condition 완화 위해 시도
+      // 중복 체크는 unique index가지만 race condition 완화를 위해 생성 성공 시 원자적 증가
       try {
         await CommentLike.create({ userId: req.user._id, commentId });
-        comment.likes = (comment.likes || 0) + 1;
-        await comment.save();
+        await Comment.updateOne({ _id: commentId }, { $inc: { likes: 1 } });
       } catch (e) {
         if (e.code === 11000) {
           throw new CustomError("이미 좋아요를 눌렀습니다.", 409);
@@ -129,11 +129,13 @@ export async function getLikeComments(req, res, next) {
 
     res.json({
       success: true,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
       data: likes.map(like => like.commentId),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (err) {
     next(err);

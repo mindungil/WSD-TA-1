@@ -48,15 +48,6 @@ paths:
                   success:
                     type: boolean
                     example: true
-                  page:
-                    type: integer
-                    example: 1
-                  limit:
-                    type: integer
-                    example: 10
-                  total:
-                    type: integer
-                    example: 25
                   data:
                     type: array
                     items:
@@ -72,6 +63,18 @@ paths:
                                   format: objectId
                                 nickname:
                                   type: string
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 10
+                      total:
+                        type: integer
+                        example: 25
 
     post:
       tags:

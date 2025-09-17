@@ -17,7 +17,8 @@ export async function register(req, res, next) {
     const existing = await User.findOne({ email });
     if (existing) throw new CustomError("이미 가입된 이메일입니다.", 409);
 
-    const hashSalt = parseInt(process.env.BCRYPT_SALT_ROUNDS);
+    const hashSaltParsed = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10);
+    const hashSalt = Number.isFinite(hashSaltParsed) && hashSaltParsed > 0 ? hashSaltParsed : 12;
     const hashPassword = await bcrypt.hash(password, hashSalt);
     const user = await User.create({ nickname, email, password: hashPassword });
 
@@ -81,7 +82,8 @@ export async function updateProfile(req, res, next) {
 
     if (nickname) user.nickname = nickname;
     if (password) {
-      const hashSalt = parseInt(process.env.BCRYPT_SALT_ROUNDS);
+      const hashSaltParsed = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10);
+      const hashSalt = Number.isFinite(hashSaltParsed) && hashSaltParsed > 0 ? hashSaltParsed : 12;
       user.password = await bcrypt.hash(password, hashSalt);
     }
 
