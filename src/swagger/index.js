@@ -19,6 +19,7 @@ const commentSpec = YAML.load(path.join(__dirname, 'specs/comment.yaml'));
 const userSpec = YAML.load(path.join(__dirname, 'specs/user.yaml'));
 const wishlistSpec = YAML.load(path.join(__dirname, 'specs/wishlist.yaml'));
 const reviewLikeSpec = YAML.load(path.join(__dirname, 'specs/reviewLike.yaml'));
+const commentLikeSpec = YAML.load(path.join(__dirname, 'specs/commentLike.yaml'));
 
 // paths와 components 병합
 swaggerDocument.paths = {
@@ -30,6 +31,7 @@ swaggerDocument.paths = {
   ...userSpec.paths,
   ...wishlistSpec.paths,
   ...reviewLikeSpec.paths,
+  ...commentLikeSpec.paths,
 };
 
 swaggerDocument.components = {
@@ -43,6 +45,7 @@ swaggerDocument.components = {
     ...userSpec.components?.schemas,
     ...wishlistSpec.components?.schemas,
     ...reviewLikeSpec.components?.schemas,
+    ...commentLikeSpec.components?.schemas,
   },
   securitySchemes: {
     ...swaggerDocument.components?.securitySchemes,
@@ -53,6 +56,7 @@ swaggerDocument.components = {
     ...userSpec.components?.securitySchemes,
     ...wishlistSpec.components?.securitySchemes,
     ...reviewLikeSpec.components?.securitySchemes,
+    ...commentLikeSpec.components?.securitySchemes,
   }
 };
 
