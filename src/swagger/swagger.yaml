@@ -7,9 +7,7 @@ info:
     name: API Support
     email: support@example.com
 
-servers:
-  - url: http://localhost:3000
-    description: Development server
+servers: []
 
 paths: {}
 
