@@ -1,22 +1,13 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresql.config.js";
 
-const Wishlist = sequelize.define(
-  "Wishlist",
+const BookCategory = sequelize.define(
+  "BookCategory",
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
-    },
-    user_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: "users",
-        key: "id",
-      },
-      onDelete: "CASCADE",
     },
     book_id: {
       type: DataTypes.INTEGER,
@@ -27,22 +18,28 @@ const Wishlist = sequelize.define(
       },
       onDelete: "CASCADE",
     },
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+    category_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "categories",
+        key: "id",
+      },
+      onDelete: "CASCADE",
     },
   },
   {
-    tableName: "wishlists",
+    tableName: "book_categories",
     timestamps: false,
     underscored: true,
     indexes: [
       {
         unique: true,
-        fields: ["user_id", "book_id"],
+        fields: ["book_id", "category_id"],
       },
     ],
   }
 );
 
-export default Wishlist;
+export default BookCategory;
+

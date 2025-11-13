@@ -1,21 +1,74 @@
-import mongoose from "mongoose";
+import { DataTypes } from "sequelize";
+import sequelize from "../config/postgresql.config.js";
 
-const { Schema, model, Types } = mongoose;
-
-const reviewSchema = new Schema(
+const Review = sequelize.define(
+  "Review",
   {
-    bookId: { type: Types.ObjectId, ref: "Book", required: true, index: true },
-    userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
-    title: { type: String },
-    content: { type: String, required: true },
-    rating: { type: Number, min: 0, max: 5, required: true },
-    likes: { type: Number, default: 0, index: true },
-    status: { type: String, enum: ["ACTIVE", "DELETED"], default: "ACTIVE" },
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "users",
+        key: "id",
+      },
+      onDelete: "CASCADE",
+    },
+    book_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "books",
+        key: "id",
+      },
+      onDelete: "CASCADE",
+    },
+    rating: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    content: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.ENUM("active", "inactive", "deleted"),
+      allowNull: false,
+      defaultValue: "active",
+    },
+    deleted_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
   },
-  { timestamps: true }
+  {
+    tableName: "reviews",
+    timestamps: false,
+    underscored: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ["user_id", "book_id"],
+      },
+    ],
+    hooks: {
+      beforeUpdate: (review) => {
+        review.updated_at = new Date();
+      },
+    },
+  }
 );
 
-// 좋아요 순 정렬 최적화
-reviewSchema.index({ status: 1, likes: -1 });
-
-export default model("Review", reviewSchema);
+export default Review;

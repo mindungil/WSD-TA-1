@@ -1,8 +1,8 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresql.config.js";
 
-const Wishlist = sequelize.define(
-  "Wishlist",
+const Cart = sequelize.define(
+  "Cart",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -27,13 +27,22 @@ const Wishlist = sequelize.define(
       },
       onDelete: "CASCADE",
     },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+    },
     created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
   },
   {
-    tableName: "wishlists",
+    tableName: "carts",
     timestamps: false,
     underscored: true,
     indexes: [
@@ -42,7 +51,13 @@ const Wishlist = sequelize.define(
         fields: ["user_id", "book_id"],
       },
     ],
+    hooks: {
+      beforeUpdate: (cart) => {
+        cart.updated_at = new Date();
+      },
+    },
   }
 );
 
-export default Wishlist;
+export default Cart;
+

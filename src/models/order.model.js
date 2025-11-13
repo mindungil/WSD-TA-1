@@ -1,44 +1,40 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/postgresql.config.js";
 
-const User = sequelize.define(
-  "User",
+const Order = sequelize.define(
+  "Order",
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    email: {
-      type: DataTypes.STRING(100),
+    user_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
+      references: {
+        model: "users",
+        key: "id",
+      },
+      onDelete: "CASCADE",
     },
-    password: {
-      type: DataTypes.STRING(255),
+    total_amount: {
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
-    },
-    name: {
-      type: DataTypes.STRING(50),
-      allowNull: false,
-    },
-    phone_number: {
-      type: DataTypes.STRING(20),
-      allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM("active", "inactive", "deleted"),
+      type: DataTypes.ENUM("paid", "canceled"),
       allowNull: false,
-      defaultValue: "active",
+      defaultValue: "paid",
+    },
+    payment_method: {
+      type: DataTypes.ENUM("card", "mobile", "etc"),
+      allowNull: false,
+      defaultValue: "card",
     },
     deleted_at: {
       type: DataTypes.DATE,
       allowNull: true,
-    },
-    role: {
-      type: DataTypes.STRING(20),
-      allowNull: false,
-      defaultValue: "user",
     },
     created_at: {
       type: DataTypes.DATE,
@@ -50,15 +46,16 @@ const User = sequelize.define(
     },
   },
   {
-    tableName: "users",
+    tableName: "orders",
     timestamps: false,
     underscored: true,
     hooks: {
-      beforeUpdate: (user) => {
-        user.updated_at = new Date();
+      beforeUpdate: (order) => {
+        order.updated_at = new Date();
       },
     },
   }
 );
 
-export default User;
+export default Order;
+
