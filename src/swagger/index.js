@@ -21,7 +21,7 @@ const orderSpec = YAML.load(path.join(__dirname, 'specs/order.yaml'));
 const categorySpec = YAML.load(path.join(__dirname, 'specs/category.yaml'));
 
 // 서버 URL을 동적으로 설정하는 함수
-export const getSwaggerSpecs = (req) => {
+const getSwaggerSpecs = (req) => {
   // SSL 인증서 없이 HTTP만 사용하므로 항상 http로 설정
   const protocol = 'http';
   const host = req.get('host') || process.env.SWAGGER_HOST || 'localhost:3000';
