@@ -10,8 +10,11 @@ categoryRouter.get("/", categoryCtrl.getCategories);
 // 카테고리별 도서 조회
 categoryRouter.get("/:categoryId/books", categoryCtrl.getBooksByCategory);
 
-// 카테고리 생성 (관리자용 - 추후 권한 체크 추가 가능)
+// 카테고리 생성
 categoryRouter.post("/", authMiddleware, categoryCtrl.createCategory);
+
+// 카테고리 수정
+categoryRouter.put("/:categoryId", authMiddleware, categoryCtrl.updateCategory);
 
 export default categoryRouter;
 

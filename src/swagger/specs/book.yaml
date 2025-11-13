@@ -1,24 +1,59 @@
 paths:
-  /api/books/import/csv:
+  /api/books:
     post:
       tags:
         - Book
-      summary: CSV 파일로 도서 등록
-      description: CSV 파일을 업로드하여 도서를 DB에 등록/갱신합니다.
+      summary: 도서 등록
+      description: 새로운 도서를 등록합니다.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
+              required:
+                - isbn
+                - title
+                - price
               properties:
-                file:
+                isbn:
                   type: string
-                  format: binary
-                  description: CSV 파일. 헤더 예시: isbn,title,authors,publisher,price,publishedAt,contents,status,categories
+                  example: "9788936433598"
+                title:
+                  type: string
+                  example: "데미안"
+                publisherName:
+                  type: string
+                  example: "창비"
+                authorNames:
+                  type: array
+                  items:
+                    type: string
+                  example: ["헤르만 헤세"]
+                categoryNames:
+                  type: array
+                  items:
+                    type: string
+                  example: ["소설", "문학"]
+                publishedDate:
+                  type: string
+                  format: date
+                  example: "2020-01-01"
+                price:
+                  type: number
+                  format: decimal
+                  example: 15000.00
+                stock:
+                  type: integer
+                  example: 100
+                description:
+                  type: string
+                  example: "책 내용 요약"
       responses:
-        '200':
-          description: 도서 등록/갱신 성공
+        '201':
+          description: 도서 등록 성공
           content:
             application/json:
               schema:
@@ -28,16 +63,12 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    type: object
-                    properties:
-                      upserted:
-                        type: integer
-                        example: 120
-                      modified:
-                        type: integer
-                        example: 45
+                    $ref: '#/components/schemas/Book'
+        '400':
+          description: 필수 필드 누락
+        '409':
+          description: 이미 등록된 ISBN
 
-  /api/books:
     get:
       tags:
         - Book
@@ -106,21 +137,62 @@ paths:
                   data:
                     $ref: '#/components/schemas/Book'
 
-  /api/books/isbn/{isbn}:
-    get:
+    put:
       tags:
         - Book
-      summary: ISBN으로 도서 조회
+      summary: 도서 수정
+      security:
+        - bearerAuth: []
       parameters:
-        - name: isbn
+        - name: bookId
           in: path
           required: true
           schema:
-            type: string
-          example: "9788936433598"
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "데미안"
+                publisherName:
+                  type: string
+                  example: "창비"
+                authorNames:
+                  type: array
+                  items:
+                    type: string
+                  example: ["헤르만 헤세"]
+                categoryNames:
+                  type: array
+                  items:
+                    type: string
+                  example: ["소설"]
+                publishedDate:
+                  type: string
+                  format: date
+                  example: "2020-01-01"
+                price:
+                  type: number
+                  format: decimal
+                  example: 15000.00
+                stock:
+                  type: integer
+                  example: 100
+                description:
+                  type: string
+                  example: "책 내용 요약"
+                status:
+                  type: string
+                  enum: ["active", "inactive", "deleted"]
+                  example: "active"
       responses:
         '200':
-          description: 책 조회 성공
+          description: 도서 수정 성공
           content:
             application/json:
               schema:
@@ -131,6 +203,8 @@ paths:
                     example: true
                   data:
                     $ref: '#/components/schemas/Book'
+        '404':
+          description: 도서를 찾을 수 없습니다
 
 components:
   schemas:

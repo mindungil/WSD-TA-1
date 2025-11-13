@@ -104,6 +104,52 @@ paths:
     put:
       tags:
         - Order
+      summary: 주문 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["paid", "canceled"]
+                  example: "paid"
+                payment_method:
+                  type: string
+                  enum: ["card", "mobile", "etc"]
+                  example: "card"
+      responses:
+        '200':
+          description: 주문 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          description: 재고 부족 또는 잘못된 요청
+        '404':
+          description: 주문을 찾을 수 없습니다
+
+  /api/orders/{id}/cancel:
+    put:
+      tags:
+        - Order
       summary: 주문 취소
       security:
         - bearerAuth: []

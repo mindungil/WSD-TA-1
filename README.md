@@ -172,19 +172,42 @@ Authorization: Bearer <access_token>
 
 ## 도서 API
 
-### 도서 등록 (CSV 업로드)
+### 도서 등록
 ```http
-POST /api/books/import/csv
-Content-Type: multipart/form-data
+POST /api/books
+Content-Type: application/json
+Authorization: Bearer <access_token>
 
-file: books.csv
+{
+  "isbn": "9788936433598",
+  "title": "데미안",
+  "publisherName": "창비",
+  "authorNames": ["헤르만 헤세"],
+  "categoryNames": ["소설"],
+  "price": 15000,
+  "stock": 100,
+  "publishedDate": "2020-01-01",
+  "description": "책 내용 요약"
+}
 ```
 
 ### 도서 조회
 ```http
 GET /api/books?title=검색어&page=1&limit=10
 GET /api/books/{bookId}
-GET /api/books/isbn/{isbn}
+```
+
+### 도서 수정
+```http
+PUT /api/books/{bookId}
+Content-Type: application/json
+Authorization: Bearer <access_token>
+
+{
+  "title": "수정된 제목",
+  "price": 16000,
+  "stock": 150
+}
 ```
 
 ## 리뷰 API
@@ -224,6 +247,7 @@ Authorization: Bearer <access_token>
 POST /api/orders
 GET /api/orders?page=1&limit=10
 GET /api/orders/{orderId}
+PUT /api/orders/{orderId}
 PUT /api/orders/{orderId}/cancel
 Authorization: Bearer <access_token>
 ```
@@ -233,6 +257,7 @@ Authorization: Bearer <access_token>
 ```http
 GET /api/categories
 POST /api/categories
+PUT /api/categories/{categoryId}
 GET /api/categories/{categoryId}/books?page=1&limit=10
 Authorization: Bearer <access_token>
 ```

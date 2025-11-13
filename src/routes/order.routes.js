@@ -13,6 +13,9 @@ orderRouter.get("/", authMiddleware, orderCtrl.getOrders);
 // 주문 상세 조회
 orderRouter.get("/:id", authMiddleware, orderCtrl.getOrder);
 
+// 주문 수정
+orderRouter.put("/:id", authMiddleware, orderCtrl.updateOrder);
+
 // 주문 취소
 orderRouter.put("/:id/cancel", authMiddleware, orderCtrl.cancelOrder);
 

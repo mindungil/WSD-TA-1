@@ -84,7 +84,7 @@ export async function getBooksByCategory(req, res, next) {
   }
 }
 
-// 카테고리 생성 (관리자용 - 추후 권한 체크 추가 가능)
+// 카테고리 생성
 export async function createCategory(req, res, next) {
   try {
     const { name, parentId } = req.body;
@@ -104,6 +104,41 @@ export async function createCategory(req, res, next) {
     });
 
     res.status(201).json({ success: true, data: category });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// 카테고리 수정
+export async function updateCategory(req, res, next) {
+  try {
+    const { categoryId } = req.params;
+    const { name, parentId } = req.body;
+
+    const category = await Category.findByPk(categoryId);
+    if (!category) {
+      throw new CustomError("카테고리를 찾을 수 없습니다.", 404);
+    }
+
+    if (name !== undefined) {
+      category.name = name;
+    }
+
+    if (parentId !== undefined) {
+      if (parentId === categoryId) {
+        throw new CustomError("자기 자신을 부모로 설정할 수 없습니다.", 400);
+      }
+      if (parentId) {
+        const parent = await Category.findByPk(parentId);
+        if (!parent) {
+          throw new CustomError("부모 카테고리를 찾을 수 없습니다.", 404);
+        }
+      }
+      category.parent_id = parentId || null;
+    }
+
+    await category.save();
+    res.json({ success: true, data: category });
   } catch (err) {
     next(err);
   }

@@ -61,6 +61,51 @@ paths:
         '404':
           description: 부모 카테고리를 찾을 수 없습니다
 
+  /api/categories/{categoryId}:
+    put:
+      tags:
+        - Category
+      summary: 카테고리 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "수정된 카테고리명"
+                parentId:
+                  type: integer
+                  nullable: true
+                  example: null
+      responses:
+        '200':
+          description: 카테고리 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '400':
+          description: 자기 자신을 부모로 설정할 수 없습니다
+        '404':
+          description: 카테고리를 찾을 수 없습니다
+
   /api/categories/{categoryId}/books:
     get:
       tags:

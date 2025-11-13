@@ -166,6 +166,87 @@ export async function getOrder(req, res, next) {
   }
 }
 
+// 주문 수정
+export async function updateOrder(req, res, next) {
+  const transaction = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { status, payment_method } = req.body;
+    const userId = req.user.id;
+
+    const order = await Order.findOne({
+      where: { id, user_id: userId },
+      include: [
+        {
+          model: OrderItem,
+          as: "orderItems",
+          include: [{ model: Book, as: "book" }],
+        },
+      ],
+      transaction,
+    });
+
+    if (!order) throw new CustomError("주문을 찾을 수 없습니다.", 404);
+
+    const oldStatus = order.status;
+
+    if (status !== undefined) {
+      if (status === "canceled" && oldStatus === "paid") {
+        // 주문 취소 시 재고 복구
+        for (const orderItem of order.orderItems) {
+          await Book.increment(
+            { stock: orderItem.quantity },
+            { where: { id: orderItem.book_id }, transaction }
+          );
+        }
+      } else if (oldStatus === "canceled" && status === "paid") {
+        // 취소된 주문을 다시 결제로 변경 시 재고 차감
+        for (const orderItem of order.orderItems) {
+          if (orderItem.book.stock < orderItem.quantity) {
+            throw new CustomError(`"${orderItem.book.title}"의 재고가 부족합니다.`, 400);
+          }
+          await Book.decrement(
+            { stock: orderItem.quantity },
+            { where: { id: orderItem.book_id }, transaction }
+          );
+        }
+      }
+      order.status = status;
+    }
+
+    if (payment_method !== undefined) {
+      order.payment_method = payment_method;
+    }
+
+    await order.save({ transaction });
+    await transaction.commit();
+
+    const updatedOrder = await Order.findByPk(order.id, {
+      include: [
+        {
+          model: OrderItem,
+          as: "orderItems",
+          include: [
+            {
+              model: Book,
+              as: "book",
+              include: [
+                { model: Publisher, as: "publisher" },
+                { model: Author, as: "authors", through: { attributes: ["author_order"] } },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    res.json({ success: true, data: updatedOrder });
+  } catch (err) {
+    await transaction.rollback();
+    next(err);
+  }
+}
+
 // 주문 취소
 export async function cancelOrder(req, res, next) {
   const transaction = await sequelize.transaction();
