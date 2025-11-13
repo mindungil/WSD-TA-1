@@ -9,7 +9,14 @@ export async function authMiddleware(req, res, next) {
       throw new CustomError("인증 토큰이 없습니다.", 401);
     }
     const token = header.split(" ")[1];
-    const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    } catch (jwtError) {
+      // JWT 에러는 에러 핸들러에서 처리하도록 그대로 전달
+      return next(jwtError);
+    }
 
     if (!payload.userId || typeof payload.userId !== 'number' && typeof payload.userId !== 'string') {
       throw new CustomError("유효하지 않은 토큰입니다.", 401);
