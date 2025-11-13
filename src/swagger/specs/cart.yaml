@@ -1,9 +1,9 @@
 paths:
-  /api/users/wishlists:
+  /api/carts:
     post:
       tags:
-        - Wishlist
-      summary: 위시리스트에 도서 추가
+        - Cart
+      summary: 장바구니에 도서 추가
       security:
         - bearerAuth: []
       requestBody:
@@ -18,9 +18,14 @@ paths:
                 bookId:
                   type: integer
                   example: 1
+                quantity:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  example: 2
       responses:
         '201':
-          description: 위시리스트 추가 성공
+          description: 장바구니 추가 성공
           content:
             application/json:
               schema:
@@ -30,18 +35,16 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/Wishlist'
+                    $ref: '#/components/schemas/Cart'
         '400':
-          description: bookId 필요
+          description: 재고 부족 또는 잘못된 요청
         '404':
           description: 책 정보 없음
-        '409':
-          description: 이미 위시리스트에 추가된 책입니다
 
     get:
       tags:
-        - Wishlist
-      summary: 위시리스트 조회
+        - Cart
+      summary: 장바구니 조회
       security:
         - bearerAuth: []
       parameters:
@@ -60,7 +63,7 @@ paths:
             default: 10
       responses:
         '200':
-          description: 위시리스트 조회 성공
+          description: 장바구니 조회 성공
           content:
             application/json:
               schema:
@@ -72,15 +75,86 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Wishlist'
+                      $ref: '#/components/schemas/Cart'
+                  totalAmount:
+                    type: string
+                    format: decimal
+                    example: "30000.00"
                   pagination:
                     $ref: '#/components/schemas/Pagination'
 
-  /api/users/wishlists/{id}:
     delete:
       tags:
-        - Wishlist
-      summary: 위시리스트 항목 삭제
+        - Cart
+      summary: 장바구니 전체 비우기
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 장바구니 비우기 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "장바구니가 비워졌습니다."
+
+  /api/carts/{id}:
+    put:
+      tags:
+        - Cart
+      summary: 장바구니 수량 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 3
+      responses:
+        '200':
+          description: 수량 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Cart'
+        '400':
+          description: 재고 부족 또는 잘못된 요청
+        '403':
+          description: 권한 없음
+        '404':
+          description: 장바구니 항목을 찾을 수 없습니다
+
+    delete:
+      tags:
+        - Cart
+      summary: 장바구니 항목 삭제
       security:
         - bearerAuth: []
       parameters:
@@ -92,7 +166,7 @@ paths:
           example: 1
       responses:
         '200':
-          description: 위시리스트 항목 삭제 성공
+          description: 장바구니 항목 삭제 성공
           content:
             application/json:
               schema:
@@ -103,15 +177,15 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "삭제되었습니다."
+                    example: "장바구니에서 제거되었습니다."
         '403':
           description: 권한 없음
         '404':
-          description: 항목 없음
+          description: 장바구니 항목을 찾을 수 없습니다
 
 components:
   schemas:
-    Wishlist:
+    Cart:
       type: object
       properties:
         id:
@@ -123,7 +197,14 @@ components:
         book_id:
           type: integer
           example: 1
+        quantity:
+          type: integer
+          example: 2
         created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updated_at:
           type: string
           format: date-time
           example: "2024-01-15T10:30:00.000Z"
@@ -139,6 +220,13 @@ components:
             isbn:
               type: string
               example: "9788936433598"
+            price:
+              type: number
+              format: decimal
+              example: 15000.00
+            stock:
+              type: integer
+              example: 100
             publisher:
               type: object
               properties:
@@ -185,3 +273,4 @@ components:
         message:
           type: string
           example: "오류 메시지"
+

@@ -29,9 +29,11 @@ tags:
     description: 도서 검색 및 조회 API
   - name: Review
     description: 리뷰 관리 API
-  - name: Comment
-    description: 댓글 관리 API
-  - name: Library
-    description: 개인 서재 관리 API
   - name: Wishlist
     description: 위시리스트 관리 API
+  - name: Cart
+    description: 장바구니 관리 API
+  - name: Order
+    description: 주문 관리 API
+  - name: Category
+    description: 카테고리 관리 API

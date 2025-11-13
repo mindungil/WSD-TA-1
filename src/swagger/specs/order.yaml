@@ -1,26 +1,25 @@
 paths:
-  /api/users/wishlists:
+  /api/orders:
     post:
       tags:
-        - Wishlist
-      summary: 위시리스트에 도서 추가
+        - Order
+      summary: 주문 생성 (장바구니에서)
       security:
         - bearerAuth: []
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - bookId
               properties:
-                bookId:
-                  type: integer
-                  example: 1
+                payment_method:
+                  type: string
+                  enum: ["card", "mobile", "etc"]
+                  default: "card"
+                  example: "card"
       responses:
         '201':
-          description: 위시리스트 추가 성공
+          description: 주문 생성 성공
           content:
             application/json:
               schema:
@@ -30,18 +29,14 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/Wishlist'
+                    $ref: '#/components/schemas/Order'
         '400':
-          description: bookId 필요
-        '404':
-          description: 책 정보 없음
-        '409':
-          description: 이미 위시리스트에 추가된 책입니다
+          description: 장바구니가 비어있거나 재고 부족
 
     get:
       tags:
-        - Wishlist
-      summary: 위시리스트 조회
+        - Order
+      summary: 주문 목록 조회
       security:
         - bearerAuth: []
       parameters:
@@ -60,7 +55,7 @@ paths:
             default: 10
       responses:
         '200':
-          description: 위시리스트 조회 성공
+          description: 주문 목록 조회 성공
           content:
             application/json:
               schema:
@@ -72,15 +67,15 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Wishlist'
+                      $ref: '#/components/schemas/Order'
                   pagination:
                     $ref: '#/components/schemas/Pagination'
 
-  /api/users/wishlists/{id}:
-    delete:
+  /api/orders/{id}:
+    get:
       tags:
-        - Wishlist
-      summary: 위시리스트 항목 삭제
+        - Order
+      summary: 주문 상세 조회
       security:
         - bearerAuth: []
       parameters:
@@ -92,7 +87,36 @@ paths:
           example: 1
       responses:
         '200':
-          description: 위시리스트 항목 삭제 성공
+          description: 주문 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '404':
+          description: 주문을 찾을 수 없습니다
+
+    put:
+      tags:
+        - Order
+      summary: 주문 취소
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: 주문 취소 성공
           content:
             application/json:
               schema:
@@ -103,15 +127,17 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "삭제되었습니다."
-        '403':
-          description: 권한 없음
+                    example: "주문이 취소되었습니다."
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          description: 이미 취소된 주문입니다
         '404':
-          description: 항목 없음
+          description: 주문을 찾을 수 없습니다
 
 components:
   schemas:
-    Wishlist:
+    Order:
       type: object
       properties:
         id:
@@ -120,13 +146,50 @@ components:
         user_id:
           type: integer
           example: 1
-        book_id:
-          type: integer
-          example: 1
+        total_amount:
+          type: string
+          format: decimal
+          example: "30000.00"
+        status:
+          type: string
+          enum: ["paid", "canceled"]
+          example: "paid"
+        payment_method:
+          type: string
+          enum: ["card", "mobile", "etc"]
+          example: "card"
         created_at:
           type: string
           format: date-time
           example: "2024-01-15T10:30:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        orderItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        order_id:
+          type: integer
+          example: 1
+        book_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          example: 2
+        price:
+          type: string
+          format: decimal
+          example: "15000.00"
         book:
           type: object
           properties:
@@ -185,3 +248,4 @@ components:
         message:
           type: string
           example: "오류 메시지"
+
