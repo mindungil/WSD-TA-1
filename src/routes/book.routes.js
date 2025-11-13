@@ -1,7 +1,5 @@
 import express from "express";
 import * as bookCtrl from "../controllers/book.controller.js";
-import { authMiddleware } from "../middlewares/auth.js";
-import libraryRouter from "./library.routes.js";
 import reviewRouter from "./review.routes.js";
 
 const bookRouter = express.Router();
@@ -20,8 +18,5 @@ bookRouter.get("/:bookId", bookCtrl.getBook);
 
 // 리뷰 라우터
 bookRouter.use("/:bookId/reviews", reviewRouter);
-
-// 라이브러리 라우터
-bookRouter.use("/:bookId/library", libraryRouter);
 
 export default bookRouter;

@@ -37,8 +37,9 @@ export function generateAccessToken(user) {
 
 // refersh token 생성
 export function generateRefreshToken(user) {
+  const userId = (user && (user.id || user.userId)) || user;
   return jwt.sign(
-    { userId: user._id },
+    { userId },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: REFRESH_TOKEN_EXPIRE_SEC } // JWT 자체 만료도 설정
   );

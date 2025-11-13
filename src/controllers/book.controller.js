@@ -1,8 +1,7 @@
-import Book from "../models/book.model.js";
-import Library from "../models/library.model.js";
+import { Book, Publisher, Author, Category, BookAuthor, BookCategory } from "../models/index.js";
 import { CustomError } from "../utils/CustomError.js";
 import { getPagination } from "../utils/paginate.js";
-import fs from "fs";
+import { Op } from "sequelize";
 import { parse } from "csv-parse";
 import multer from "multer";
 
@@ -31,39 +30,81 @@ export async function importBooksFromCsv(req, res, next) {
 
     parser.on("end", async () => {
       try {
-        // CSV 컬럼 가정: isbn,title,authors,publisher,price,sale_price,contents,thumbnail,publishedAt,status,categories
-        const bulkOps = records.map((r) => {
-          const authors = r.authors ? String(r.authors).split("|").map((s) => s.trim()).filter(Boolean) : [];
-          const categories = r.categories ? String(r.categories).split("|").map((s) => s.trim()).filter(Boolean) : [];
-          return {
-            updateOne: {
-              filter: { isbn: r.isbn },
-              update: {
-                $set: {
-                  title: r.title,
-                  authors,
-                  publisher: r.publisher || undefined,
-                  price: r.price ? Number(r.price) : undefined,
-                  sale_price: r.sale_price ? Number(r.sale_price) : undefined,
-                  contents: r.contents || undefined,
-                  thumbnail: r.thumbnail || undefined,
-                  publishedAt: r.publishedAt || undefined,
-                  status: r.status || undefined,
-                  categories,
-                },
-                $setOnInsert: { isbn: r.isbn },
-              },
-              upsert: true,
-            },
-          };
-        });
+        let upserted = 0;
+        let modified = 0;
 
-        if (bulkOps.length === 0) {
-          return res.status(400).json({ success: false, message: "CSV 데이터가 비어 있습니다." });
+        for (const r of records) {
+          // Publisher 처리
+          let publisher = null;
+          if (r.publisher) {
+            [publisher] = await Publisher.findOrCreate({
+              where: { name: r.publisher },
+              defaults: { name: r.publisher },
+            });
+          }
+
+          // Book 처리
+          const [book, created] = await Book.findOrCreate({
+            where: { isbn: r.isbn },
+            defaults: {
+              title: r.title,
+              publisher_id: publisher ? publisher.id : null,
+              price: r.price ? parseFloat(r.price) : 0,
+              published_date: r.publishedAt || null,
+              description: r.contents || null,
+              status: r.status || "active",
+            },
+          });
+
+          if (!created) {
+            await book.update({
+              title: r.title,
+              publisher_id: publisher ? publisher.id : null,
+              price: r.price ? parseFloat(r.price) : 0,
+              published_date: r.publishedAt || null,
+              description: r.contents || null,
+              status: r.status || "active",
+            });
+            modified++;
+          } else {
+            upserted++;
+          }
+
+          // Authors 처리
+          if (r.authors) {
+            const authorNames = String(r.authors).split("|").map((s) => s.trim()).filter(Boolean);
+            await BookAuthor.destroy({ where: { book_id: book.id } });
+            for (let i = 0; i < authorNames.length; i++) {
+              const [author] = await Author.findOrCreate({
+                where: { name: authorNames[i] },
+                defaults: { name: authorNames[i] },
+              });
+              await BookAuthor.create({
+                book_id: book.id,
+                author_id: author.id,
+                author_order: i + 1,
+              });
+            }
+          }
+
+          // Categories 처리
+          if (r.categories) {
+            const categoryNames = String(r.categories).split("|").map((s) => s.trim()).filter(Boolean);
+            await BookCategory.destroy({ where: { book_id: book.id } });
+            for (const categoryName of categoryNames) {
+              const [category] = await Category.findOrCreate({
+                where: { name: categoryName },
+                defaults: { name: categoryName },
+              });
+              await BookCategory.create({
+                book_id: book.id,
+                category_id: category.id,
+              });
+            }
+          }
         }
 
-        const result = await Book.bulkWrite(bulkOps, { ordered: false });
-        return res.status(200).json({ success: true, data: { upserted: result.upsertedCount, modified: result.modifiedCount } });
+        return res.status(200).json({ success: true, data: { upserted, modified } });
       } catch (e) {
         next(e);
       }
@@ -80,14 +121,23 @@ export async function importBooksFromCsv(req, res, next) {
 export async function getBook(req, res, next) {
   try {
     const bookId = req.params.bookId;
-    if(!bookId) throw new CustomError("bookId가 필요합니다.", 404);
+    if (!bookId) throw new CustomError("bookId가 필요합니다.", 404);
 
-    const book = await Book.findById({_id: bookId});
+    const book = await Book.findByPk(bookId, {
+      include: [
+        { model: Publisher, as: "publisher" },
+        { model: Author, as: "authors", through: { attributes: ["author_order"] } },
+        { model: Category, as: "categories" },
+      ],
+    });
+
+    if (!book) throw new CustomError("해당 도서가 존재하지 않습니다.", 404);
+
     return res.status(200).json({
       success: true,
-      data: book
+      data: book,
     });
-  } catch(err) {
+  } catch (err) {
     next(err);
   }
 }
@@ -101,21 +151,29 @@ export async function getBookList(req, res, next) {
     const { page, limit, skip } = getPagination(req);
 
     // title 부분일치 검색 + 페이지네이션
-    const [books, total] = await Promise.all([
-      Book.find({ title: new RegExp(title, "i") }) // 대소문자 구분 X
-        .skip(skip)
-        .limit(limit),
-      Book.countDocuments({ title: new RegExp(title, "i") }),
-    ]);
+    const { count, rows: books } = await Book.findAndCountAll({
+      where: {
+        title: {
+          [Op.iLike]: `%${title}%`,
+        },
+      },
+      include: [
+        { model: Publisher, as: "publisher" },
+        { model: Author, as: "authors", through: { attributes: ["author_order"] } },
+        { model: Category, as: "categories" },
+      ],
+      offset: skip,
+      limit: limit,
+    });
 
     return res.status(200).json({
       success: true,
       data: books,
       pagination: {
-        total,
+        total: count,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(count / limit),
       },
     });
   } catch (err) {
@@ -127,12 +185,19 @@ export async function getBookList(req, res, next) {
 export async function getBookToIsbn(req, res, next) {
   try {
     const isbn = req.params.isbn;
-    const book = await Book.findOne({isbn: isbn});
+    const book = await Book.findOne({
+      where: { isbn },
+      include: [
+        { model: Publisher, as: "publisher" },
+        { model: Author, as: "authors", through: { attributes: ["author_order"] } },
+        { model: Category, as: "categories" },
+      ],
+    });
 
-    if(!book) throw new CustomError("해당 도서가 존재하지 않습니다.", 404);
-    
-    res.json({success: true, data: book });
-  } catch(err) {
+    if (!book) throw new CustomError("해당 도서가 존재하지 않습니다.", 404);
+
+    res.json({ success: true, data: book });
+  } catch (err) {
     next(err);
   }
 }

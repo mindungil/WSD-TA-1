@@ -1,0 +1,17 @@
+import express from "express";
+import * as categoryCtrl from "../controllers/category.controller.js";
+import { authMiddleware } from "../middlewares/auth.js";
+
+const categoryRouter = express.Router();
+
+// 카테고리 목록 조회
+categoryRouter.get("/", categoryCtrl.getCategories);
+
+// 카테고리별 도서 조회
+categoryRouter.get("/:categoryId/books", categoryCtrl.getBooksByCategory);
+
+// 카테고리 생성 (관리자용 - 추후 권한 체크 추가 가능)
+categoryRouter.post("/", authMiddleware, categoryCtrl.createCategory);
+
+export default categoryRouter;
+

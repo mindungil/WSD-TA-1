@@ -1,20 +1,28 @@
-import Wishlist from "../models/wishlist.model.js";
-import Book from "../models/book.model.js";
+import { Wishlist, Book, Publisher, Author } from "../models/index.js";
 import { getPagination } from "../utils/paginate.js";
 import { CustomError } from "../utils/CustomError.js";
 
 // 위시리스트 추가
 export async function addWishlist(req, res, next) {
   try {
-    const { bookId, note } = req.body;
+    const { bookId } = req.body;
     if (!bookId) throw new CustomError("bookId 필요", 400);
 
-    let book = await Book.findById(bookId);
-    if(!book) {
+    const book = await Book.findByPk(bookId);
+    if (!book) {
       throw new CustomError("책 정보 없음", 404);
     }
 
-    const entry = await Wishlist.create({ userId: req.user._id, bookId: book._id, note: note});
+    // 이미 위시리스트에 있는지 확인
+    const existing = await Wishlist.findOne({
+      where: { user_id: req.user.id, book_id: bookId },
+    });
+
+    if (existing) {
+      throw new CustomError("이미 위시리스트에 추가된 책입니다.", 409);
+    }
+
+    const entry = await Wishlist.create({ user_id: req.user.id, book_id: bookId });
     res.status(201).json({ success: true, data: entry });
   } catch (err) {
     next(err);
@@ -24,18 +32,31 @@ export async function addWishlist(req, res, next) {
 // 위시리스트 조회 - 페이지
 export async function getWishlist(req, res, next) {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { page, limit, skip } = getPagination(req);
 
-    const [items, total] = await Promise.all([
-      Wishlist.find({ userId: userId })
-        .populate("bookId")
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Wishlist.countDocuments({ userId: userId }),
-    ]);
-    res.json({ success: true, data: items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+    const { count, rows: items } = await Wishlist.findAndCountAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: Book,
+          as: "book",
+          include: [
+            { model: Publisher, as: "publisher" },
+            { model: Author, as: "authors", through: { attributes: ["author_order"] } },
+          ],
+        },
+      ],
+      offset: skip,
+      limit: limit,
+      order: [["created_at", "DESC"]],
+    });
+
+    res.json({
+      success: true,
+      data: items,
+      pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) },
+    });
   } catch (err) {
     next(err);
   }
@@ -45,11 +66,11 @@ export async function getWishlist(req, res, next) {
 export async function deleteWishlist(req, res, next) {
   try {
     const { id } = req.params;
-    const entry = await Wishlist.findById(id);
+    const entry = await Wishlist.findByPk(id);
     if (!entry) throw new CustomError("항목 없음", 404);
-    if (!entry.userId.equals(req.user._id)) throw new CustomError("권한 없음", 403);
+    if (entry.user_id !== req.user.id) throw new CustomError("권한 없음", 403);
 
-    await entry.deleteOne();
+    await entry.destroy();
     res.json({ success: true, message: "삭제되었습니다." });
   } catch (err) {
     next(err);
