@@ -19,8 +19,16 @@ connectPostgreSQL();
 connectRedis();
 
 // 미들웨어
-app.use(cors());
-app.use(helmet());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: false
+}));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
 app.use(express.json({limit: '10mb'}));
 app.use(express.urlencoded({extended: true}));
 
