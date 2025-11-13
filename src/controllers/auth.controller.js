@@ -26,8 +26,7 @@ export async function refresh(req, res) {
 
 // access token 생성
 export function generateAccessToken(user) {
-  // user 객체가 {_id} 또는 {userId} 형태 모두 올 수 있도록 대응
-  const userId = (user && (user._id || user.userId)) || user;
+  const userId = (user && (user.id || user.userId)) || user;
   return jwt.sign(
     { userId },
     process.env.ACCESS_TOKEN_SECRET,

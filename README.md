@@ -67,6 +67,39 @@ npm start
 - API 서버: `http://localhost:3000`
 - API 문서: `http://localhost:3000/api-docs`
 
+## Docker를 사용한 실행
+
+### Docker Compose로 실행
+```bash
+docker-compose up -d
+```
+
+모든 서비스(PostgreSQL, Redis, 애플리케이션)가 자동으로 시작되고 데이터베이스 마이그레이션이 실행됩니다.
+
+### 환경 변수 설정
+프로덕션 환경에서는 `.env` 파일을 생성하거나 `docker-compose.yml`의 환경 변수를 수정하세요.
+
+### 서비스 중지
+```bash
+docker-compose down
+```
+
+데이터를 유지하려면:
+```bash
+docker-compose down
+```
+
+데이터까지 삭제하려면:
+```bash
+docker-compose down -v
+```
+
+### 개별 서비스 관리
+```bash
+docker-compose up -d postgres redis
+docker-compose up app
+```
+
 ## API 명세서
 
 ### 기본 URL

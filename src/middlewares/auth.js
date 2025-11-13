@@ -11,6 +11,10 @@ export async function authMiddleware(req, res, next) {
     const token = header.split(" ")[1];
     const payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
+    if (!payload.userId || typeof payload.userId !== 'number' && typeof payload.userId !== 'string') {
+      throw new CustomError("유효하지 않은 토큰입니다.", 401);
+    }
+
     const user = await User.findByPk(payload.userId, {
       attributes: { exclude: ["password"] },
     });
