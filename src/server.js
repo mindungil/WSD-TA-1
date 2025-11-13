@@ -2,7 +2,7 @@ import express from "express";
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { connectMongodb } from "./config/mongodb.config.js";
+import { connectPostgreSQL } from "./config/postgresql.config.js";
 import { connectRedis } from "./config/redis.config.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs, swaggerUi } from "./swagger/index.js";
@@ -15,7 +15,7 @@ const PORT = process.env.PORT;
 const HOST = process.env.HOST;
 
 // db 연결
-connectMongodb();
+connectPostgreSQL();
 connectRedis();
 
 // 미들웨어
@@ -35,7 +35,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 }));
 
 app.get("/", (req, res) => {
-  res.send("Hello World");
+  res.send("Hello W-S-D");
 });
 
 // 글로벌 에러 핸들러

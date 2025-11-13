@@ -2,23 +2,25 @@
 
 도서 관리 시스템을 위한 RESTful API 서버입니다.
 
-## 🚀 기술 스택
+## 기술 스택
 
-- **Runtime**: Node.js (ES Modules)
-- **Framework**: Express.js 5.1.0
-- **Database**: MongoDB (Mongoose 8.18.0)
-- **Cache**: Redis 5.8.2
-- **Authentication**: JWT
-- **External API**: Kakao Book Search API
+- Runtime: Node.js (ES Modules)
+- Framework: Express.js 5.1.0
+- Database: PostgreSQL (Sequelize 6.37.5)
+- Cache: Redis 5.8.2
+- Authentication: JWT
+- API Documentation: Swagger
 
-## 📋 주요 기능
+## 주요 기능
 
-- 사용자 인증 (회원가입, 로그인, JWT)
-- 도서 검색 (카카오 API + DB 저장)
-- 리뷰/댓글 시스템 (좋아요 기능 포함)
-- 개인 서재 및 위시리스트 관리
+- 사용자 인증 및 관리 (JWT 기반)
+- 도서 관리 (CSV 업로드, 검색, 조회)
+- 리뷰 시스템
+- 위시리스트 관리
+- 장바구니 및 주문 관리
+- 카테고리 관리
 
-## 🛠️ 설치 및 실행
+## 설치 및 실행
 
 ### 1. 의존성 설치
 ```bash
@@ -26,15 +28,21 @@ npm install
 ```
 
 ### 2. 환경 변수 설정
-`.env` 파일을 생성하고 다음 변수들을 설정하세요:
+`.env` 파일을 생성하고 `.env.example`을 참고하여 다음 변수들을 설정하세요:
 
 ```env
 # Server
 PORT=3000
 HOST=localhost
 
-# Database
-MONGODB_URI=mongodb://localhost:27017/book-library
+# PostgreSQL
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=book_library
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+
+# Redis
 REDIS_URL=redis://localhost:6379
 
 # JWT
@@ -43,12 +51,14 @@ REFRESH_TOKEN_SECRET=your_refresh_token_secret
 
 # Password Hashing
 BCRYPT_SALT_ROUNDS=12
-
-# External API
-KAKAO_API_KEY=your_kakao_api_key
 ```
 
-### 3. 서버 실행
+### 3. 데이터베이스 마이그레이션
+```bash
+npm run migrate
+```
+
+### 4. 서버 실행
 ```bash
 npm start
 ```
@@ -57,7 +67,7 @@ npm start
 - API 서버: `http://localhost:3000`
 - API 문서: `http://localhost:3000/api-docs`
 
-## 📚 API 명세서
+## API 명세서
 
 ### 기본 URL
 ```
@@ -70,9 +80,7 @@ http://localhost:3000/api
 Authorization: Bearer <access_token>
 ```
 
----
-
-## 🔐 인증 API
+## 인증 API
 
 ### 회원가입
 ```http
@@ -80,7 +88,7 @@ POST /api/users/register
 Content-Type: application/json
 
 {
-  "nickname": "사용자닉네임",
+  "name": "홍길동",
   "email": "user@example.com",
   "password": "password123"
 }
@@ -113,9 +121,7 @@ POST /api/users/logout
 Authorization: Bearer <access_token>
 ```
 
----
-
-## 👤 사용자 API
+## 사용자 API
 
 ### 프로필 조회/수정/삭제
 ```http
@@ -125,36 +131,30 @@ DELETE /api/users/profile
 Authorization: Bearer <access_token>
 ```
 
-### 사용자 리뷰/좋아요 조회
+### 사용자 리뷰 조회
 ```http
 GET /api/users/reviews?page=1&limit=10
-GET /api/users/reviews/likes?page=1&limit=10
-GET /api/users/comments/likes?page=1&limit=10
 Authorization: Bearer <access_token>
 ```
 
----
-
-## 📖 도서 API
+## 도서 API
 
 ### 도서 등록 (CSV 업로드)
 ```http
 POST /api/books/import/csv
-Content-Type: multipart/form-data (file)
+Content-Type: multipart/form-data
 
-file: kyobo_books.csv
+file: books.csv
 ```
 
-### 서버 DB 도서 조회
+### 도서 조회
 ```http
 GET /api/books?title=검색어&page=1&limit=10
 GET /api/books/{bookId}
 GET /api/books/isbn/{isbn}
 ```
 
----
-
-## ⭐ 리뷰 API
+## 리뷰 API
 
 ### 리뷰 CRUD
 ```http
@@ -165,48 +165,7 @@ DELETE /api/books/{bookId}/reviews/{reviewId}
 Authorization: Bearer <access_token>
 ```
 
-### 리뷰 좋아요
-```http
-POST /api/books/{bookId}/reviews/{reviewId}/like
-DELETE /api/books/{bookId}/reviews/{reviewId}/like
-Authorization: Bearer <access_token>
-```
-
----
-
-## 💬 댓글 API
-
-### 댓글 CRUD
-```http
-GET /api/books/{bookId}/reviews/{reviewId}/comments?page=1&limit=10
-POST /api/books/{bookId}/reviews/{reviewId}/comments
-PUT /api/books/{bookId}/reviews/{reviewId}/comments/{commentId}
-DELETE /api/books/{bookId}/reviews/{reviewId}/comments/{commentId}
-Authorization: Bearer <access_token>
-```
-
-### 댓글 좋아요
-```http
-POST /api/books/{bookId}/reviews/{reviewId}/comments/{commentId}/like
-DELETE /api/books/{bookId}/reviews/{reviewId}/comments/{commentId}/like
-Authorization: Bearer <access_token>
-```
-
----
-
-## 📚 개인 서재 API
-
-```http
-POST /api/users/library
-GET /api/users/library/list?page=1&limit=10
-GET /api/users/library?bookId=... | ?isbn=...
-DELETE /api/users/library/{libraryId}
-Authorization: Bearer <access_token>
-```
-
----
-
-## ❤️ 위시리스트 API
+## 위시리스트 API
 
 ```http
 POST /api/users/wishlists
@@ -215,91 +174,60 @@ DELETE /api/users/wishlists/{wishlistId}
 Authorization: Bearer <access_token>
 ```
 
----
+## 장바구니 API
 
-## 📊 데이터 모델
-
-### User
-```json
-{
-  "_id": "ObjectId",
-  "email": "String (unique)",
-  "password": "String (hashed)",
-  "nickname": "String (unique)",
-  "roles": ["String"],
-  "createdAt": "Date",
-  "updatedAt": "Date"
-}
+```http
+POST /api/carts
+GET /api/carts?page=1&limit=10
+PUT /api/carts/{cartId}
+DELETE /api/carts/{cartId}
+DELETE /api/carts
+Authorization: Bearer <access_token>
 ```
 
-### Book
-```json
-{
-  "_id": "ObjectId",
-  "isbn": "String (unique)",
-  "title": "String",
-  "authors": ["String"],
-  "publisher": "String",
-  "price": "Number",
-  "sale_price": "Number",
-  "contents": "String",
-  "thumbnail": "String",
-  "publishedAt": "String",
-  "status": "String",
-  "categories": ["String"],
-  "reviewCount": "Number",
-  "averageRating": "Number"
-}
+## 주문 API
+
+```http
+POST /api/orders
+GET /api/orders?page=1&limit=10
+GET /api/orders/{orderId}
+PUT /api/orders/{orderId}/cancel
+Authorization: Bearer <access_token>
 ```
 
-### Review
-```json
-{
-  "_id": "ObjectId",
-  "bookId": "ObjectId (ref: Book)",
-  "userId": "ObjectId (ref: User)",
-  "title": "String",
-  "content": "String",
-  "rating": "Number (0-5, required)",
-  "likes": "Number",
-  "status": "String (ACTIVE/DELETED)"
-}
+## 카테고리 API
+
+```http
+GET /api/categories
+POST /api/categories
+GET /api/categories/{categoryId}/books?page=1&limit=10
+Authorization: Bearer <access_token>
 ```
 
-### Comment
-```json
-{
-  "_id": "ObjectId",
-  "reviewId": "ObjectId (ref: Review)",
-  "userId": "ObjectId (ref: User)",
-  "content": "String",
-  "likes": "Number"
-}
-```
+## 데이터베이스 구조
 
-### Library
-```json
-{
-  "_id": "ObjectId",
-  "userId": "ObjectId (ref: User)",
-  "bookId": "ObjectId (ref: Book)",
-  "isbn": "String"
-}
-```
+### 주요 테이블
+- users: 사용자 정보
+- books: 도서 정보
+- publishers: 출판사 정보
+- authors: 저자 정보
+- categories: 카테고리 정보
+- reviews: 리뷰
+- wishlists: 위시리스트
+- carts: 장바구니
+- orders: 주문
+- order_items: 주문 항목
 
-### Wishlist
-```json
-{
-  "_id": "ObjectId",
-  "userId": "ObjectId (ref: User)",
-  "bookId": "ObjectId (ref: Book)",
-  "note": "String"
-}
-```
+### 관계
+- books - publishers: N:1
+- books - authors: N:M (book_authors)
+- books - categories: N:M (book_categories)
+- users - reviews: 1:N
+- users - orders: 1:N
+- users - wishlists: 1:N
+- users - carts: 1:N
 
----
-
-## 🔒 보안 기능
+## 보안 기능
 
 - JWT 인증 (Access Token 1시간 + Refresh Token 7일)
 - bcryptjs 비밀번호 해싱
@@ -308,41 +236,34 @@ Authorization: Bearer <access_token>
 - 권한 검증 (소유자만 수정/삭제)
 - Unique Index를 통한 중복 방지
 
----
-
-## 📝 에러 처리
+## 에러 처리
 
 API는 일관된 에러 응답 형식을 사용합니다:
 
 ```json
 {
   "success": false,
-  "message": "에러 메시지",
-  "statusCode": 400
+  "message": "에러 메시지"
 }
 ```
 
 ### 주요 HTTP 상태 코드
-- `200`: 성공
-- `201`: 생성 성공
-- `400`: 잘못된 요청
-- `401`: 인증 실패
-- `403`: 권한 없음
-- `404`: 리소스 없음
-- `409`: 중복 데이터
-- `500`: 서버 오류
+- 200: 성공
+- 201: 생성 성공
+- 400: 잘못된 요청
+- 401: 인증 실패
+- 403: 권한 없음
+- 404: 리소스 없음
+- 409: 중복 데이터
+- 500: 서버 오류
 
----
+## 성능 최적화
 
-## ⚡ 성능 최적화
+- Redis 캐싱: 리뷰 목록 조회 (60초 TTL), 버전 키 기반 무효화
+- 데이터베이스 인덱싱: 자주 조회되는 필드에 인덱스 설정
+- 페이지네이션: 모든 목록 조회에 적용
+- 트랜잭션: 주문 생성/취소 시 원자성 보장
 
-- **Redis 캐싱**: 리뷰 목록 조회 (60초 TTL), 버전 키 기반 무효화
-- **데이터베이스 인덱싱**: 자주 조회되는 필드에 인덱스 설정
-- **페이지네이션**: 모든 목록 조회에 적용
-- **Bulk Operations**: 도서 검색 시 효율적인 DB 업데이트
-
----
-
-## 📄 라이선스
+## 라이선스
 
 ISC License
